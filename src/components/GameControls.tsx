@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DiceFive, HelpCircle } from 'lucide-react';
+import { Dice, HelpCircle } from 'lucide-react';
 import { Player } from '@/types/game';
 
 interface GameControlsProps {
@@ -36,7 +36,7 @@ const GameControls: React.FC<GameControlsProps> = ({
               className="px-8 py-6 text-lg"
               disabled={currentPlayer.skipNextTurn}
             >
-              <DiceFive className="mr-2 h-5 w-5" />
+              <Dice className="mr-2 h-5 w-5" />
               Roll for Question
             </Button>
             
