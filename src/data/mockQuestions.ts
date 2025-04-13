@@ -1,4 +1,3 @@
-
 import { Question } from "../types/game";
 
 export const mockQuestions: Question[] = [
@@ -121,5 +120,125 @@ export const mockQuestions: Question[] = [
     options: ["Mount Everest", "K2", "Kilimanjaro", "Matterhorn"],
     category: "Geography",
     difficulty: "easy"
+  },
+  {
+    id: 16,
+    question: "Who wrote 'The Great Gatsby'?",
+    correctAnswer: "F. Scott Fitzgerald",
+    options: ["F. Scott Fitzgerald", "Ernest Hemingway", "Mark Twain", "John Steinbeck"],
+    category: "Literature",
+    difficulty: "medium"
+  },
+  {
+    id: 17,
+    question: "What is the smallest planet in our solar system?",
+    correctAnswer: "Mercury",
+    options: ["Mercury", "Mars", "Pluto", "Venus"],
+    category: "Astronomy",
+    difficulty: "easy"
+  },
+  {
+    id: 18,
+    question: "Which country produces the most coffee in the world?",
+    correctAnswer: "Brazil",
+    options: ["Brazil", "Colombia", "Vietnam", "Ethiopia"],
+    category: "Geography",
+    difficulty: "medium"
+  },
+  {
+    id: 19,
+    question: "What is the chemical symbol for silver?",
+    correctAnswer: "Ag",
+    options: ["Ag", "Si", "Au", "Sr"],
+    category: "Chemistry",
+    difficulty: "medium"
+  },
+  {
+    id: 20,
+    question: "Which planet has the most moons?",
+    correctAnswer: "Saturn",
+    options: ["Saturn", "Jupiter", "Uranus", "Neptune"],
+    category: "Astronomy",
+    difficulty: "hard"
+  },
+  {
+    id: 21,
+    question: "What is the fastest land animal?",
+    correctAnswer: "Cheetah",
+    options: ["Cheetah", "Lion", "Gazelle", "Wildebeest"],
+    category: "Animals",
+    difficulty: "easy"
+  },
+  {
+    id: 22,
+    question: "Which element has the atomic number 1?",
+    correctAnswer: "Hydrogen",
+    options: ["Hydrogen", "Helium", "Oxygen", "Carbon"],
+    category: "Chemistry",
+    difficulty: "easy"
+  },
+  {
+    id: 23,
+    question: "Who painted the ceiling of the Sistine Chapel?",
+    correctAnswer: "Michelangelo",
+    options: ["Michelangelo", "Leonardo da Vinci", "Raphael", "Donatello"],
+    category: "Art",
+    difficulty: "medium"
+  },
+  {
+    id: 24,
+    question: "Which country is home to the Great Barrier Reef?",
+    correctAnswer: "Australia",
+    options: ["Australia", "Brazil", "Thailand", "Mexico"],
+    category: "Geography",
+    difficulty: "easy"
+  },
+  {
+    id: 25,
+    question: "What is the hardest natural substance on Earth?",
+    correctAnswer: "Diamond",
+    options: ["Diamond", "Ruby", "Quartz", "Titanium"],
+    category: "Science",
+    difficulty: "easy"
+  },
+  {
+    id: 26,
+    question: "Who wrote 'To Kill a Mockingbird'?",
+    correctAnswer: "Harper Lee",
+    options: ["Harper Lee", "J.K. Rowling", "Stephen King", "John Grisham"],
+    category: "Literature",
+    difficulty: "medium"
+  },
+  {
+    id: 27,
+    question: "What is the currency of Japan?",
+    correctAnswer: "Yen",
+    options: ["Yen", "Won", "Yuan", "Ringgit"],
+    category: "Geography",
+    difficulty: "easy"
+  },
+  {
+    id: 28,
+    question: "Which planet is known as the 'Morning Star'?",
+    correctAnswer: "Venus",
+    options: ["Venus", "Mars", "Mercury", "Jupiter"],
+    category: "Astronomy",
+    difficulty: "medium"
+  },
+  {
+    id: 29,
+    question: "What is the largest species of shark?",
+    correctAnswer: "Whale Shark",
+    options: ["Whale Shark", "Great White Shark", "Hammerhead Shark", "Tiger Shark"],
+    category: "Animals",
+    difficulty: "easy"
+  },
+  {
+    id: 30,
+    question: "Who discovered penicillin?",
+    correctAnswer: "Alexander Fleming",
+    options: ["Alexander Fleming", "Marie Curie", "Louis Pasteur", "Jonas Salk"],
+    category: "Science",
+    difficulty: "medium"
   }
 ];

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import GameSetup from '@/components/GameSetup';
 import GameBoard from '@/components/GameBoard';
 import PlayerInfo from '@/components/PlayerInfo';
@@ -8,6 +8,7 @@ import GameControls from '@/components/GameControls';
 import GameOver from '@/components/GameOver';
 import { useGameState } from '@/hooks/useGameState';
 import { GameMode } from '@/types/game';
+import { toast } from '@/components/ui/use-toast';
 
 const Game: React.FC = () => {
   const {
@@ -23,10 +24,43 @@ const Game: React.FC = () => {
     startTurn,
     handleAnswer,
     resetGame,
+    autoAnswer,
     MAX_ROUNDS
   } = useGameState();
+  
+  const [timeRemaining, setTimeRemaining] = useState<number>(10);
 
   const currentPlayer = players[currentPlayerIndex] || { id: 0, name: '', position: 0, score: 0, skipNextTurn: false };
+
+  // Question timer effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (showQuestion && !answerSelected) {
+      setTimeRemaining(10);
+      
+      timer = setInterval(() => {
+        setTimeRemaining((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(timer);
+            // Time's up - auto-select wrong answer
+            toast({
+              title: "Time's up!",
+              description: `${currentPlayer.name} ran out of time!`,
+              variant: "destructive"
+            });
+            autoAnswer();
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [showQuestion, answerSelected, currentPlayer.name, autoAnswer]);
 
   // Automatically start turn after a short delay when we have a new current player
   useEffect(() => {
@@ -69,7 +103,8 @@ const Game: React.FC = () => {
           <GameControls 
             currentPlayer={currentPlayer} 
             onRoll={startTurn} 
-            showQuestion={showQuestion} 
+            showQuestion={showQuestion}
+            timeRemaining={showQuestion ? timeRemaining : undefined}
           />
         </div>
       )}

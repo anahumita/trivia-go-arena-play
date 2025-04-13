@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Player, Question, GameMode, GameStatus } from '../types/game';
 import { mockQuestions } from '../data/mockQuestions';
 import { gameBoard } from '../data/gameBoard';
@@ -14,6 +14,9 @@ export const useGameState = () => {
   const [round, setRound] = useState(1);
   const [showQuestion, setShowQuestion] = useState(false);
   const [answerSelected, setAnswerSelected] = useState(false);
+  
+  // Track used question IDs to prevent repetition
+  const usedQuestionIds = useRef<Set<number>>(new Set());
   
   const MAX_ROUNDS = 10;
   const MAX_POSITION = gameBoard.length - 1;
@@ -32,6 +35,7 @@ export const useGameState = () => {
     setGameStatus("playing");
     setCurrentPlayerIndex(0);
     setRound(1);
+    usedQuestionIds.current.clear(); // Reset used questions when starting a new game
     
     toast({
       title: "Game Started!",
@@ -40,8 +44,24 @@ export const useGameState = () => {
   }, []);
 
   const getRandomQuestion = useCallback(() => {
-    const randomIndex = Math.floor(Math.random() * mockQuestions.length);
-    return mockQuestions[randomIndex];
+    // If all questions have been used, reset the used question IDs
+    if (usedQuestionIds.current.size >= mockQuestions.length * 0.75) {
+      usedQuestionIds.current.clear();
+    }
+    
+    // Filter out questions that have already been used
+    const availableQuestions = mockQuestions.filter(q => !usedQuestionIds.current.has(q.id));
+    
+    // If no available questions (shouldn't happen with the reset above), use all questions
+    const questionPool = availableQuestions.length > 0 ? availableQuestions : mockQuestions;
+    
+    const randomIndex = Math.floor(Math.random() * questionPool.length);
+    const selectedQuestion = questionPool[randomIndex];
+    
+    // Add the question ID to the used questions set
+    usedQuestionIds.current.add(selectedQuestion.id);
+    
+    return selectedQuestion;
   }, []);
 
   const startTurn = useCallback(() => {
@@ -70,6 +90,36 @@ export const useGameState = () => {
     setShowQuestion(true);
     setAnswerSelected(false);
   }, [currentPlayerIndex, players, getRandomQuestion]);
+
+  // Function to automatically handle when time runs out
+  const autoAnswer = useCallback(() => {
+    if (!currentQuestion || answerSelected) return;
+    
+    setAnswerSelected(true);
+    
+    // Choose a wrong answer (not the correct one)
+    const wrongOptions = currentQuestion.options.filter(
+      option => option !== currentQuestion.correctAnswer
+    );
+    const randomWrongOption = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+    
+    toast({
+      title: "Time Expired",
+      description: `The correct answer was: ${currentQuestion.correctAnswer}`,
+      variant: "destructive"
+    });
+    
+    // Show question briefly, then hide it
+    setTimeout(() => {
+      setShowQuestion(false);
+      setCurrentQuestion(null);
+      
+      // Move to next player after a short delay
+      setTimeout(() => {
+        moveToNextPlayer();
+      }, 1000);
+    }, 2000);
+  }, [currentQuestion, answerSelected]);
 
   const handleAnswer = useCallback((selectedAnswer: string) => {
     if (!currentQuestion || answerSelected) return;
@@ -226,6 +276,7 @@ export const useGameState = () => {
     setRound(1);
     setShowQuestion(false);
     setAnswerSelected(false);
+    usedQuestionIds.current.clear(); // Reset used questions
   }, []);
 
   return {
@@ -240,6 +291,7 @@ export const useGameState = () => {
     initializeGame,
     startTurn,
     handleAnswer,
+    autoAnswer,
     resetGame,
     MAX_ROUNDS
   };
