@@ -6,6 +6,7 @@ import PlayerInfo from '@/components/PlayerInfo';
 import QuestionCard from '@/components/QuestionCard';
 import GameControls from '@/components/GameControls';
 import GameOver from '@/components/GameOver';
+import ExitButton from '@/components/ExitButton';
 import { useGameState } from '@/hooks/useGameState';
 import { GameMode } from '@/types/game';
 import { toast } from '@/components/ui/use-toast';
@@ -76,6 +77,7 @@ const Game: React.FC = () => {
   return (
     <div className="container mx-auto py-6 px-4">
       <h1 className="text-4xl font-bold text-center text-primary mb-6">TriviaGo</h1>
+      <ExitButton />
       
       {gameStatus === 'setup' && (
         <GameSetup onStartGame={(mode: GameMode, playerNames: string[]) => initializeGame(mode, playerNames)} />

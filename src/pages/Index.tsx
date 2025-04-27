@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Award, Users, Brain, ArrowRight } from 'lucide-react';
+import { Award, Users, Brain, ArrowRight, LayoutDashboard } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -23,6 +22,12 @@ const Index = () => {
               <Link to="/game">
                 Start Playing
                 <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto py-8 px-6 text-lg" size="lg">
+              <Link to="/dashboard">
+                <LayoutDashboard className="mr-2 h-5 w-5" />
+                Go to Dashboard
               </Link>
             </Button>
           </div>
