@@ -3,6 +3,7 @@ import { Player, Question } from "@/types/game";
 import { mockQuestions } from "@/data/mockQuestions";
 import { gameBoard } from "@/data/gameBoard";
 import { toast } from "@/components/ui/use-toast";
+import { GameState } from "./types";
 
 export const MAX_ROUNDS = 10;
 export const MAX_POSITION = gameBoard.length - 1;
@@ -77,3 +78,4 @@ export const createInitialGameState = (): Omit<GameState, "usedQuestionIds"> => 
   showQuestion: false,
   answerSelected: false,
 });
+
