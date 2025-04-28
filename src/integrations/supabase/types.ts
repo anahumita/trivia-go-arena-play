@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       games: {
         Row: {
+          categories: string[] | null
           created_at: string | null
           current_question_id: string | null
           id: string
@@ -18,6 +19,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          categories?: string[] | null
           created_at?: string | null
           current_question_id?: string | null
           id?: string
@@ -25,6 +27,7 @@ export type Database = {
           status: string
         }
         Update: {
+          categories?: string[] | null
           created_at?: string | null
           current_question_id?: string | null
           id?: string
@@ -47,6 +50,7 @@ export type Database = {
           id: string
           rank: number | null
           score: number | null
+          strongest_category: string | null
           user_id: string | null
         }
         Insert: {
@@ -54,6 +58,7 @@ export type Database = {
           id?: string
           rank?: number | null
           score?: number | null
+          strongest_category?: string | null
           user_id?: string | null
         }
         Update: {
@@ -61,6 +66,7 @@ export type Database = {
           id?: string
           rank?: number | null
           score?: number | null
+          strongest_category?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -75,6 +81,7 @@ export type Database = {
       }
       players: {
         Row: {
+          category_stats: Json | null
           color: string | null
           game_id: string | null
           id: string
@@ -84,6 +91,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          category_stats?: Json | null
           color?: string | null
           game_id?: string | null
           id?: string
@@ -93,6 +101,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          category_stats?: Json | null
           color?: string | null
           game_id?: string | null
           id?: string
@@ -152,6 +161,7 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string
+          favorite_categories: string[] | null
           id: string
           last_login: string | null
           password: string
@@ -160,6 +170,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           email: string
+          favorite_categories?: string[] | null
           id?: string
           last_login?: string | null
           password: string
@@ -168,6 +179,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           email?: string
+          favorite_categories?: string[] | null
           id?: string
           last_login?: string | null
           password?: string

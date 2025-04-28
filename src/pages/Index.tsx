@@ -2,8 +2,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Award, Users, Brain, ArrowRight, LayoutDashboard } from 'lucide-react';
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-game-background to-white">
       <div className="container mx-auto px-4 py-12">
@@ -24,12 +27,20 @@ const Index = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-auto py-8 px-6 text-lg" size="lg">
-              <Link to="/dashboard">
-                <LayoutDashboard className="mr-2 h-5 w-5" />
-                Go to Dashboard
-              </Link>
-            </Button>
+            {user ? (
+              <Button asChild variant="outline" className="h-auto py-8 px-6 text-lg" size="lg">
+                <Link to="/dashboard">
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Go to Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild variant="outline" className="h-auto py-8 px-6 text-lg" size="lg">
+                <Link to="/auth">
+                  Sign In / Register
+                </Link>
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
