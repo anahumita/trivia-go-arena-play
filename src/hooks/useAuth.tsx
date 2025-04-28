@@ -11,17 +11,19 @@ export function useAuth() {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, currentSession) => {
+        console.log("Auth state change event:", event);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession ? "Session found" : "No session");
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
       setLoading(false);
     });
 
@@ -32,5 +34,46 @@ export function useAuth() {
     user,
     session,
     loading,
+    signIn: async (email: string, password: string) => {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+        return { data, error: null };
+      } catch (error: any) {
+        console.error("Login error:", error.message);
+        return { data: null, error };
+      }
+    },
+    signUp: async (email: string, password: string, username: string) => {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username },
+          },
+        });
+        
+        if (error) throw error;
+        return { data, error: null };
+      } catch (error: any) {
+        console.error("Signup error:", error.message);
+        return { data: null, error };
+      }
+    },
+    signOut: async () => {
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        return { error: null };
+      } catch (error: any) {
+        console.error("Logout error:", error.message);
+        return { error };
+      }
+    }
   };
 }

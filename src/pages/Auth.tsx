@@ -7,36 +7,43 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { signIn, signUp, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Redirect if user is already logged in
+  if (user) {
+    navigate('/dashboard');
+    return null;
+  }
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        },
-      });
+      const { data, error } = await signUp(email, password, username);
 
-      if (error) throw error;
-      
-      toast.success("Registration successful! Please check your email to confirm your account.");
-      navigate("/dashboard");
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Registration successful! Please check your email to confirm your account.");
+        // Don't navigate yet as the user needs to verify email first
+      }
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "An error occurred during registration");
     } finally {
       setLoading(false);
     }
@@ -47,17 +54,20 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await signIn(email, password);
 
-      if (error) throw error;
-      
-      toast.success("Successfully logged in!");
-      navigate("/dashboard");
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          toast.error("Please confirm your email before logging in");
+        } else {
+          toast.error(error.message || "Invalid login credentials");
+        }
+      } else {
+        toast.success("Successfully logged in!");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "An error occurred during login");
     } finally {
       setLoading(false);
     }
@@ -137,10 +147,11 @@ const Auth = () => {
                   <Input
                     id="register-password"
                     type="password"
-                    placeholder="Choose a password"
+                    placeholder="Choose a password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={6}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -150,6 +161,11 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-muted-foreground">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
