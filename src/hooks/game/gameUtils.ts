@@ -31,14 +31,24 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
     const randomIndex = Math.floor(Math.random() * questionPool.length);
     const selectedQuestion = questionPool[randomIndex];
     
-    usedQuestionIds.add(selectedQuestion.id);
+    usedQuestionIds.add(Number(selectedQuestion.id));
     return selectedQuestion;
   }
 
+  // Map Supabase question to our Question type
+  const dbQuestion = questions[0];
+  const question: Question = {
+    id: Number(dbQuestion.id),
+    question: dbQuestion.question,
+    correctAnswer: dbQuestion.correct_answer,
+    options: dbQuestion.options,
+    category: dbQuestion.category,
+    difficulty: dbQuestion.difficulty
+  };
+
   // Add the question ID to used IDs set
-  const selectedQuestion = questions[0];
-  usedQuestionIds.add(selectedQuestion.id);
-  return selectedQuestion;
+  usedQuestionIds.add(Number(question.id));
+  return question;
 };
 
 export const processSquareEffect = (player: Player, newPosition: number): {

@@ -16,6 +16,21 @@ export const useGameState = () => {
   
   const usedQuestionIds = useRef<Set<number>>(new Set());
 
+  const moveToNextPlayer = useCallback(() => {
+    const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    setCurrentPlayerIndex(nextPlayerIndex);
+    
+    if (nextPlayerIndex === 0) {
+      const newRound = round + 1;
+      setRound(newRound);
+      
+      if (newRound > MAX_ROUNDS) {
+        endGame();
+        return;
+      }
+    }
+  }, [currentPlayerIndex, players.length, round]);
+
   const initializeGame = useCallback((mode: GameMode, playerNames: string[]) => {
     const newPlayers: Player[] = playerNames.map((name, index) => ({
       id: index + 1,
@@ -72,21 +87,6 @@ export const useGameState = () => {
       });
     }
   }, [currentPlayerIndex, players, moveToNextPlayer]);
-
-  const moveToNextPlayer = useCallback(() => {
-    const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    setCurrentPlayerIndex(nextPlayerIndex);
-    
-    if (nextPlayerIndex === 0) {
-      const newRound = round + 1;
-      setRound(newRound);
-      
-      if (newRound > MAX_ROUNDS) {
-        endGame();
-        return;
-      }
-    }
-  }, [currentPlayerIndex, players.length, round]);
 
   const endGame = useCallback((winnerId?: number) => {
     if (winnerId) {
