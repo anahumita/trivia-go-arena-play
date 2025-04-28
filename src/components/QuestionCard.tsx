@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Question } from '@/types/game';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,14 @@ interface QuestionCardProps {
 
 const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerSelected }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+  
+  // Shuffle options when the question changes
+  useEffect(() => {
+    // Create a copy of the options array and shuffle it
+    const shuffled = [...question.options].sort(() => Math.random() - 0.5);
+    setShuffledOptions(shuffled);
+  }, [question]);
 
   const handleSelectAnswer = (answer: string) => {
     if (answerSelected) return;
@@ -41,7 +49,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {question.options.map((option) => (
+            {shuffledOptions.map((option) => (
               <Button
                 key={option}
                 variant={
