@@ -1,4 +1,4 @@
-
+import { supabase } from "@/integrations/supabase/client";
 import { Player, Question } from "@/types/game";
 import { mockQuestions } from "@/data/mockQuestions";
 import { gameBoard } from "@/data/gameBoard";
@@ -8,24 +8,36 @@ import { GameState } from "./types";
 export const MAX_ROUNDS = 10;
 export const MAX_POSITION = gameBoard.length - 1;
 
-export const getRandomQuestion = (usedQuestionIds: Set<number>): Question => {
-  // If all questions have been used, reset the used question IDs
-  if (usedQuestionIds.size >= mockQuestions.length * 0.75) {
-    usedQuestionIds.clear();
+export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Question> => {
+  // Try to fetch a random question from Supabase
+  const { data: questions, error } = await supabase
+    .from('questions')
+    .select('*')
+    .not('id', 'in', Array.from(usedQuestionIds))
+    .limit(1)
+    .order('RANDOM()');
+
+  // If there's an error or no questions found, fallback to mock questions
+  if (error || !questions || questions.length === 0) {
+    console.warn('Failed to fetch questions from database, using mock data:', error);
+    
+    // Use the existing mock data logic as fallback
+    if (usedQuestionIds.size >= mockQuestions.length * 0.75) {
+      usedQuestionIds.clear();
+    }
+    
+    const availableQuestions = mockQuestions.filter(q => !usedQuestionIds.has(q.id));
+    const questionPool = availableQuestions.length > 0 ? availableQuestions : mockQuestions;
+    const randomIndex = Math.floor(Math.random() * questionPool.length);
+    const selectedQuestion = questionPool[randomIndex];
+    
+    usedQuestionIds.add(selectedQuestion.id);
+    return selectedQuestion;
   }
-  
-  // Filter out questions that have already been used
-  const availableQuestions = mockQuestions.filter(q => !usedQuestionIds.has(q.id));
-  
-  // If no available questions (shouldn't happen with the reset above), use all questions
-  const questionPool = availableQuestions.length > 0 ? availableQuestions : mockQuestions;
-  
-  const randomIndex = Math.floor(Math.random() * questionPool.length);
-  const selectedQuestion = questionPool[randomIndex];
-  
-  // Add the question ID to the used questions set
+
+  // Add the question ID to used IDs set
+  const selectedQuestion = questions[0];
   usedQuestionIds.add(selectedQuestion.id);
-  
   return selectedQuestion;
 };
 
@@ -78,4 +90,3 @@ export const createInitialGameState = (): Omit<GameState, "usedQuestionIds"> => 
   showQuestion: false,
   answerSelected: false,
 });
-

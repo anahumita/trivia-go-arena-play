@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { Player, Question, GameMode, GameStatus } from '@/types/game';
 import { toast } from '@/components/ui/use-toast';
@@ -15,7 +14,6 @@ export const useGameState = () => {
   const [showQuestion, setShowQuestion] = useState(false);
   const [answerSelected, setAnswerSelected] = useState(false);
   
-  // Track used question IDs to prevent repetition
   const usedQuestionIds = useRef<Set<number>>(new Set());
 
   const initializeGame = useCallback((mode: GameMode, playerNames: string[]) => {
@@ -32,7 +30,7 @@ export const useGameState = () => {
     setGameStatus("playing");
     setCurrentPlayerIndex(0);
     setRound(1);
-    usedQuestionIds.current.clear(); // Reset used questions when starting a new game
+    usedQuestionIds.current.clear();
     
     toast({
       title: "Game Started!",
@@ -40,7 +38,7 @@ export const useGameState = () => {
     });
   }, []);
 
-  const startTurn = useCallback(() => {
+  const startTurn = useCallback(async () => {
     const player = players[currentPlayerIndex];
     
     if (player.skipNextTurn) {
@@ -50,7 +48,6 @@ export const useGameState = () => {
         variant: "destructive"
       });
       
-      // Reset skip flag and move to next player
       setPlayers(prev => 
         prev.map(p => 
           p.id === player.id ? { ...p, skipNextTurn: false } : p
@@ -61,22 +58,29 @@ export const useGameState = () => {
       return;
     }
     
-    const question = getRandomQuestion(usedQuestionIds.current);
-    setCurrentQuestion(question);
-    setShowQuestion(true);
-    setAnswerSelected(false);
-  }, [currentPlayerIndex, players]);
+    try {
+      const question = await getRandomQuestion(usedQuestionIds.current);
+      setCurrentQuestion(question);
+      setShowQuestion(true);
+      setAnswerSelected(false);
+    } catch (error) {
+      console.error('Failed to fetch question:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load question. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [currentPlayerIndex, players, moveToNextPlayer]);
 
   const moveToNextPlayer = useCallback(() => {
     const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
     setCurrentPlayerIndex(nextPlayerIndex);
     
-    // If we're back to the first player, increment the round
     if (nextPlayerIndex === 0) {
       const newRound = round + 1;
       setRound(newRound);
       
-      // Check if we've reached the maximum number of rounds
       if (newRound > MAX_ROUNDS) {
         endGame();
         return;
@@ -91,7 +95,6 @@ export const useGameState = () => {
         description: `${players.find(p => p.id === winnerId)?.name} reached the end and wins!`
       });
     } else {
-      // Find player with highest score
       const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
       const winner = sortedPlayers[0];
       
@@ -116,11 +119,9 @@ export const useGameState = () => {
     let effectApplied = null;
     
     if (correct) {
-      // Move forward on correct answer
       newPosition = Math.min(player.position + 1, MAX_POSITION);
       newScore += 10;
       
-      // Process square effects
       const { 
         newPosition: updatedPosition, 
         newScore: updatedScore, 
@@ -147,14 +148,12 @@ export const useGameState = () => {
       }
     }
     
-    // Update player position and score
     setPlayers(prev => 
       prev.map(p => 
         p.id === player.id ? { ...p, position: newPosition, score: newScore } : p
       )
     );
     
-    // Show appropriate toast
     if (correct) {
       toast({
         title: "Correct Answer!",
@@ -176,32 +175,26 @@ export const useGameState = () => {
       });
     }
     
-    // Check if player reached the final square
     if (newPosition === MAX_POSITION) {
       endGame(player.id);
       return;
     }
     
-    // Show question for a bit, then hide it
     setTimeout(() => {
       setShowQuestion(false);
       setCurrentQuestion(null);
       
-      // Move to next player after a short delay
       setTimeout(() => {
         moveToNextPlayer();
       }, 1000);
     }, 2000);
-    
   }, [currentQuestion, currentPlayerIndex, players, answerSelected, endGame, moveToNextPlayer]);
 
-  // Function to automatically handle when time runs out
   const autoAnswer = useCallback(() => {
     if (!currentQuestion || answerSelected) return;
     
     setAnswerSelected(true);
     
-    // Choose a wrong answer (not the correct one)
     const wrongOptions = currentQuestion.options.filter(
       option => option !== currentQuestion.correctAnswer
     );
@@ -213,12 +206,10 @@ export const useGameState = () => {
       variant: "destructive"
     });
     
-    // Show question briefly, then hide it
     setTimeout(() => {
       setShowQuestion(false);
       setCurrentQuestion(null);
       
-      // Move to next player after a short delay
       setTimeout(() => {
         moveToNextPlayer();
       }, 1000);
@@ -234,7 +225,7 @@ export const useGameState = () => {
     setRound(1);
     setShowQuestion(false);
     setAnswerSelected(false);
-    usedQuestionIds.current.clear(); // Reset used questions
+    usedQuestionIds.current.clear();
   }, []);
 
   return {
