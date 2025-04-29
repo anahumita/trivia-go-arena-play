@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Player, Question } from "@/types/game";
 import { mockQuestions } from "@/data/mockQuestions";
@@ -37,13 +38,26 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
 
   // Map Supabase question to our Question type
   const dbQuestion = questions[0];
+  
+  // Validate and normalize difficulty
+  let normalizedDifficulty: "easy" | "medium" | "hard" = "easy";
+  
+  if (dbQuestion.difficulty) {
+    const difficultyLower = dbQuestion.difficulty.toLowerCase();
+    if (difficultyLower === "easy" || difficultyLower === "medium" || difficultyLower === "hard") {
+      normalizedDifficulty = difficultyLower as "easy" | "medium" | "hard";
+    } else {
+      console.warn(`Unknown difficulty level "${dbQuestion.difficulty}" found, defaulting to "easy"`);
+    }
+  }
+  
   const question: Question = {
     id: Number(dbQuestion.id),
     question: dbQuestion.question,
     correctAnswer: dbQuestion.correct_answer,
     options: dbQuestion.options,
     category: dbQuestion.category,
-    difficulty: dbQuestion.difficulty
+    difficulty: normalizedDifficulty
   };
 
   // Add the question ID to used IDs set
