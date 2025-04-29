@@ -12,20 +12,40 @@ export const MAX_POSITION = gameBoard.length - 1;
 export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Question> => {
   // Try to fetch a random question from Supabase
   try {
-    // The RANDOM() function doesn't work in the order parameter, so we'll fetch questions
-    // and randomize in code instead
+    console.log("Fetching questions from database, excluding IDs:", Array.from(usedQuestionIds));
+    
+    // Query to get questions not in the used IDs list
     const { data: questions, error } = await supabase
       .from('questions')
-      .select('*')
-      .not('id', 'in', Array.from(usedQuestionIds));
+      .select('*');
     
-    if (error || !questions || questions.length === 0) {
-      throw new Error(`Failed to fetch questions: ${error?.message || "No questions found"}`);
+    if (error) {
+      console.error("Database error:", error);
+      throw error;
     }
     
-    // Select a random question from the results
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    const dbQuestion = questions[randomIndex];
+    if (!questions || questions.length === 0) {
+      console.warn("No questions found in database");
+      throw new Error("No questions found in database");
+    }
+    
+    console.log(`Found ${questions.length} questions in database`);
+    
+    // Filter out questions that have already been used
+    const unusedQuestions = questions.filter(q => !usedQuestionIds.has(Number(q.id)));
+    
+    if (unusedQuestions.length === 0) {
+      console.log("All questions have been used, clearing used IDs");
+      usedQuestionIds.clear();
+      // Now all questions are available again
+    }
+    
+    // Select a random question from available questions
+    const availableQuestions = unusedQuestions.length > 0 ? unusedQuestions : questions;
+    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+    const dbQuestion = availableQuestions[randomIndex];
+    
+    console.log("Selected question:", dbQuestion);
     
     // Validate and normalize difficulty
     let normalizedDifficulty: "easy" | "medium" | "hard" = "easy";

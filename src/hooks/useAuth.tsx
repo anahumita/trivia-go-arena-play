@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from "sonner";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -36,12 +37,18 @@ export function useAuth() {
     loading,
     signIn: async (email: string, password: string) => {
       try {
+        console.log(`Attempting to sign in user: ${email}`);
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Login error:", error.message);
+          throw error;
+        }
+        
+        console.log("Sign in successful:", data);
         return { data, error: null };
       } catch (error: any) {
         console.error("Login error:", error.message);
@@ -50,6 +57,7 @@ export function useAuth() {
     },
     signUp: async (email: string, password: string, username: string) => {
       try {
+        console.log(`Attempting to sign up user: ${email} with username: ${username}`);
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -58,7 +66,12 @@ export function useAuth() {
           },
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Signup error:", error.message);
+          throw error;
+        }
+        
+        console.log("Sign up successful:", data);
         return { data, error: null };
       } catch (error: any) {
         console.error("Signup error:", error.message);
@@ -67,8 +80,13 @@ export function useAuth() {
     },
     signOut: async () => {
       try {
+        console.log("Attempting to sign out");
         const { error } = await supabase.auth.signOut();
-        if (error) throw error;
+        if (error) {
+          console.error("Logout error:", error.message);
+          throw error;
+        }
+        console.log("Sign out successful");
         return { error: null };
       } catch (error: any) {
         console.error("Logout error:", error.message);
