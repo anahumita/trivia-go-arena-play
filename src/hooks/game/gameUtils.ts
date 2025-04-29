@@ -11,15 +11,48 @@ export const MAX_POSITION = gameBoard.length - 1;
 
 export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Question> => {
   // Try to fetch a random question from Supabase
-  const { data: questions, error } = await supabase
-    .from('questions')
-    .select('*')
-    .not('id', 'in', Array.from(usedQuestionIds))
-    .limit(1)
-    .order('RANDOM()');
+  try {
+    // The RANDOM() function doesn't work in the order parameter, so we'll fetch questions
+    // and randomize in code instead
+    const { data: questions, error } = await supabase
+      .from('questions')
+      .select('*')
+      .not('id', 'in', Array.from(usedQuestionIds));
+    
+    if (error || !questions || questions.length === 0) {
+      throw new Error(`Failed to fetch questions: ${error?.message || "No questions found"}`);
+    }
+    
+    // Select a random question from the results
+    const randomIndex = Math.floor(Math.random() * questions.length);
+    const dbQuestion = questions[randomIndex];
+    
+    // Validate and normalize difficulty
+    let normalizedDifficulty: "easy" | "medium" | "hard" = "easy";
+    
+    if (dbQuestion.difficulty) {
+      const difficultyLower = dbQuestion.difficulty.toLowerCase();
+      if (difficultyLower === "easy" || difficultyLower === "medium" || difficultyLower === "hard") {
+        normalizedDifficulty = difficultyLower as "easy" | "medium" | "hard";
+      } else {
+        console.warn(`Unknown difficulty level "${dbQuestion.difficulty}" found, defaulting to "easy"`);
+      }
+    }
+    
+    const question: Question = {
+      id: Number(dbQuestion.id),
+      question: dbQuestion.question,
+      correctAnswer: dbQuestion.correct_answer,
+      options: dbQuestion.options,
+      category: dbQuestion.category,
+      difficulty: normalizedDifficulty
+    };
 
-  // If there's an error or no questions found, fallback to mock questions
-  if (error || !questions || questions.length === 0) {
+    // Add the question ID to used IDs set
+    usedQuestionIds.add(Number(question.id));
+    console.log("Successfully fetched question from database:", question);
+    return question;
+  } catch (error) {
     console.warn('Failed to fetch questions from database, using mock data:', error);
     
     // Use the existing mock data logic as fallback
@@ -35,34 +68,6 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
     usedQuestionIds.add(Number(selectedQuestion.id));
     return selectedQuestion;
   }
-
-  // Map Supabase question to our Question type
-  const dbQuestion = questions[0];
-  
-  // Validate and normalize difficulty
-  let normalizedDifficulty: "easy" | "medium" | "hard" = "easy";
-  
-  if (dbQuestion.difficulty) {
-    const difficultyLower = dbQuestion.difficulty.toLowerCase();
-    if (difficultyLower === "easy" || difficultyLower === "medium" || difficultyLower === "hard") {
-      normalizedDifficulty = difficultyLower as "easy" | "medium" | "hard";
-    } else {
-      console.warn(`Unknown difficulty level "${dbQuestion.difficulty}" found, defaulting to "easy"`);
-    }
-  }
-  
-  const question: Question = {
-    id: Number(dbQuestion.id),
-    question: dbQuestion.question,
-    correctAnswer: dbQuestion.correct_answer,
-    options: dbQuestion.options,
-    category: dbQuestion.category,
-    difficulty: normalizedDifficulty
-  };
-
-  // Add the question ID to used IDs set
-  usedQuestionIds.add(Number(question.id));
-  return question;
 };
 
 export const processSquareEffect = (player: Player, newPosition: number): {
