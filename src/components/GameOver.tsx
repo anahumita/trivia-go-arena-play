@@ -3,7 +3,7 @@ import React from 'react';
 import { Player } from '@/types/game';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, Home } from 'lucide-react';
+import { Trophy, Medal, Home, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -53,6 +53,8 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
             
           if (updateError) {
             console.error('Error updating leaderboard:', updateError);
+          } else {
+            toast.success('Leaderboard updated!');
           }
         } else {
           // Create new entry
@@ -68,6 +70,8 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
             
           if (insertError) {
             console.error('Error creating leaderboard entry:', insertError);
+          } else {
+            toast.success('Created new leaderboard entry!');
           }
         }
       } catch (error) {

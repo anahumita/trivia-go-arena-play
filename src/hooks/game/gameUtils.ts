@@ -32,7 +32,7 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
     console.log(`Found ${questions.length} questions in database`);
     
     // Filter out questions that have already been used
-    const unusedQuestions = questions.filter(q => !usedQuestionIds.has(Number(q.id)));
+    const unusedQuestions = questions.filter(q => !usedQuestionIds.has(q.id));
     
     if (unusedQuestions.length === 0) {
       console.log("All questions have been used, clearing used IDs");
@@ -59,8 +59,11 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
       }
     }
     
+    // Convert UUID string to number for tracking (using a hash function)
+    const idNumber = hashStringToNumber(dbQuestion.id);
+    
     const question: Question = {
-      id: Number(dbQuestion.id),
+      id: idNumber,
       question: dbQuestion.question,
       correctAnswer: dbQuestion.correct_answer,
       options: dbQuestion.options,
@@ -69,7 +72,7 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
     };
 
     // Add the question ID to used IDs set
-    usedQuestionIds.add(Number(question.id));
+    usedQuestionIds.add(idNumber);
     console.log("Successfully fetched question from database:", question);
     return question;
   } catch (error) {
@@ -85,10 +88,21 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
     const randomIndex = Math.floor(Math.random() * questionPool.length);
     const selectedQuestion = questionPool[randomIndex];
     
-    usedQuestionIds.add(Number(selectedQuestion.id));
+    usedQuestionIds.add(selectedQuestion.id);
     return selectedQuestion;
   }
 };
+
+// Simple hash function to convert UUID string to number
+function hashStringToNumber(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
 
 export const processSquareEffect = (player: Player, newPosition: number): {
   newPosition: number;
