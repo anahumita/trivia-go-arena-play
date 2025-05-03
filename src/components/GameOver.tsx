@@ -6,6 +6,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Trophy, Medal, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface GameOverProps {
   players: Player[];
@@ -15,6 +18,65 @@ interface GameOverProps {
 const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
   // Sort players by score in descending order
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const { user } = useAuth();
+  
+  React.useEffect(() => {
+    // Update leaderboard when game is completed
+    const updateLeaderboard = async () => {
+      if (!user) return;
+      
+      try {
+        // Find the winner and their score
+        const winner = sortedPlayers[0];
+        
+        // Get current leaderboard entry for the user
+        const { data: currentEntry, error: fetchError } = await supabase
+          .from('leaderboard')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Error fetching leaderboard entry:', fetchError);
+          return;
+        }
+        
+        if (currentEntry) {
+          // Update existing entry
+          const { error: updateError } = await supabase
+            .from('leaderboard')
+            .update({
+              score: Math.max(currentEntry.score, winner.score),
+              games_won: currentEntry.games_won + (winner.name === user.user_metadata.username ? 1 : 0)
+            })
+            .eq('user_id', user.id);
+            
+          if (updateError) {
+            console.error('Error updating leaderboard:', updateError);
+          }
+        } else {
+          // Create new entry
+          const { error: insertError } = await supabase
+            .from('leaderboard')
+            .insert([
+              {
+                user_id: user.id,
+                score: winner.score,
+                games_won: winner.name === user.user_metadata.username ? 1 : 0
+              }
+            ]);
+            
+          if (insertError) {
+            console.error('Error creating leaderboard entry:', insertError);
+          }
+        }
+      } catch (error) {
+        console.error('Exception updating leaderboard:', error);
+      }
+    };
+    
+    updateLeaderboard();
+  }, [sortedPlayers, user]);
   
   return (
     <div className="flex justify-center items-center min-h-[80vh] animate-slide-up">
@@ -74,6 +136,14 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
               Return Home
             </Link>
           </Button>
+          {user && (
+            <Button asChild variant="ghost" className="w-full">
+              <Link to="/dashboard">
+                <LayoutDashboard className="mr-2 h-5 w-5" />
+                View Dashboard
+              </Link>
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>

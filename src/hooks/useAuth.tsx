@@ -88,6 +88,51 @@ export function useAuth() {
     }
   };
 
+  // Helper function to create or update leaderboard entry for user
+  const updateLeaderboardForUser = async (userId: string) => {
+    try {
+      // Check if user already has a leaderboard entry
+      const { data: existingEntry, error: checkError } = await supabase
+        .from('leaderboard')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error("Error checking for existing leaderboard entry:", checkError);
+        return { error: checkError };
+      }
+      
+      if (existingEntry) {
+        console.log("User already has leaderboard entry");
+        return { data: existingEntry, error: null };
+      }
+      
+      // Create new leaderboard entry
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .insert([
+          { 
+            user_id: userId,
+            score: 0,
+            games_won: 0,
+            rank: 0
+          }
+        ]);
+      
+      if (error) {
+        console.error("Error creating leaderboard entry:", error);
+        return { error };
+      }
+      
+      console.log("Leaderboard entry created:", data);
+      return { data, error: null };
+    } catch (error) {
+      console.error("Exception updating leaderboard:", error);
+      return { data: null, error };
+    }
+  };
+
   return {
     user,
     session,
@@ -148,6 +193,8 @@ export function useAuth() {
         // Save user data to custom users table
         if (data.user) {
           await saveUserToCustomTable(data.user.id, email, username);
+          // Also create a leaderboard entry for the new user
+          await updateLeaderboardForUser(data.user.id);
         }
         
         toast.success("Account created successfully!");

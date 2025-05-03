@@ -1,17 +1,81 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { LayoutDashboard, Brain, LogOut, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Brain, LogOut, User, Trophy } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+
+interface LeaderboardEntry {
+  id: string;
+  user_id: string;
+  score: number;
+  games_won: number;
+  rank: number;
+  strongest_category: string | null;
+  username?: string;
+}
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!user) return;
+      
+      try {
+        // Get leaderboard entries and join with users to get usernames
+        const { data, error } = await supabase
+          .from('leaderboard')
+          .select(`
+            *,
+            users:user_id (
+              username
+            )
+          `)
+          .order('score', { ascending: false })
+          .limit(10);
+        
+        if (error) {
+          console.error('Error fetching leaderboard:', error);
+          toast.error('Failed to load leaderboard data');
+          return;
+        }
+        
+        // Format the data to include username
+        const formattedData = data.map(entry => ({
+          ...entry,
+          username: entry.users?.username
+        }));
+        
+        setLeaderboard(formattedData);
+      } catch (error) {
+        console.error('Exception fetching leaderboard:', error);
+        toast.error('An error occurred while loading the leaderboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLeaderboard();
+  }, [user]);
   
   const handleSignOut = async () => {
     try {
       await signOut();
+      navigate('/');
     } catch (error: any) {
       toast.error('Failed to log out. Please try again.');
     }
@@ -53,6 +117,45 @@ const Dashboard = () => {
                 </Link>
               </Button>
             </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-semibold flex items-center gap-2 mb-6">
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              Leaderboard
+            </h2>
+            
+            {loading ? (
+              <div className="text-center py-8">Loading leaderboard data...</div>
+            ) : leaderboard.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Player</TableHead>
+                    <TableHead>Score</TableHead>
+                    <TableHead>Games Won</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaderboard.map((entry, index) => (
+                    <TableRow key={entry.id} className={user?.id === entry.user_id ? "bg-primary/10" : ""}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell className="font-medium">
+                        {entry.username || 'Unknown Player'}
+                        {user?.id === entry.user_id && <span className="ml-1 text-xs">(You)</span>}
+                      </TableCell>
+                      <TableCell>{entry.score}</TableCell>
+                      <TableCell>{entry.games_won}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                No leaderboard data available yet. Play some games to see your scores!
+              </div>
+            )}
           </div>
         </div>
       </div>
