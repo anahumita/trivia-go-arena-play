@@ -56,7 +56,8 @@ const Auth = () => {
       if (error) {
         toast.error(error.message || "Registration failed");
       } else {
-        toast.success("Registration successful! You can now login.");
+        toast.success("Registration successful! Redirecting to dashboard...");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred during registration");

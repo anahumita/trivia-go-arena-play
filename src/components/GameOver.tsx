@@ -3,8 +3,9 @@ import React from 'react';
 import { Player } from '@/types/game';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal } from 'lucide-react';
+import { Trophy, Medal, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface GameOverProps {
   players: Player[];
@@ -63,9 +64,15 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
             ))}
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-3">
           <Button onClick={onRestart} className="w-full">
             Play Again
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/">
+              <Home className="mr-2 h-5 w-5" />
+              Return Home
+            </Link>
           </Button>
         </CardFooter>
       </Card>
