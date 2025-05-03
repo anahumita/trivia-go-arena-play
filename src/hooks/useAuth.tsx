@@ -31,17 +31,72 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Helper function to save user data to users table
+  const saveUserToCustomTable = async (userId: string, email: string, username: string) => {
+    try {
+      // Check if user already exists in custom table
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
+        console.error("Error checking for existing user:", checkError);
+        return { error: checkError };
+      }
+      
+      if (existingUser) {
+        console.log("User already exists in custom table, updating last_login");
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error("Error updating user last_login:", updateError);
+          return { error: updateError };
+        }
+        
+        return { data: existingUser, error: null };
+      }
+      
+      // Insert new user
+      const { data, error } = await supabase
+        .from('users')
+        .insert([
+          { 
+            id: userId, 
+            email, 
+            username,
+            password: '**********', // We don't store actual password in custom table
+            created_at: new Date().toISOString(),
+            last_login: new Date().toISOString()
+          }
+        ]);
+      
+      if (error) {
+        console.error("Error saving user to custom table:", error);
+        return { error };
+      }
+      
+      console.log("User saved to custom table:", data);
+      return { data, error: null };
+    } catch (error) {
+      console.error("Exception saving user to custom table:", error);
+      return { data: null, error };
+    }
+  };
+
   return {
     user,
     session,
     loading,
-    signIn: async (username: string, password: string) => {
+    signIn: async (email: string, password: string) => {
       try {
-        console.log(`Attempting to sign in user: ${username}`);
-        // Note: Supabase still requires email for sign in, we'll need to handle this
-        // For this simplified version, we'll assume username is email
+        console.log(`Attempting to sign in user with email: ${email}`);
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: username, // Using username as email for simplicity
+          email,
           password,
         });
         
@@ -52,6 +107,16 @@ export function useAuth() {
         }
         
         console.log("Sign in successful:", data);
+        
+        // Update last_login in custom users table
+        if (data.user) {
+          await saveUserToCustomTable(
+            data.user.id, 
+            data.user.email || email,
+            data.user.user_metadata?.username || email.split('@')[0]
+          );
+        }
+        
         toast.success("Login successful!");
         return { data, error: null };
       } catch (error: any) {
@@ -59,12 +124,13 @@ export function useAuth() {
         return { data: null, error };
       }
     },
-    signUp: async (username: string, password: string) => {
+    signUp: async (username: string, email: string, password: string) => {
       try {
-        console.log(`Attempting to sign up user with username: ${username}`);
-        // For this simplified version, we'll use username as both email and username
+        console.log(`Attempting to sign up user with username: ${username} and email: ${email}`);
+        
+        // First, sign up with Supabase Auth
         const { data, error } = await supabase.auth.signUp({
-          email: `${username}@example.com`, // Creating a fake email
+          email,
           password,
           options: {
             data: { username },
@@ -78,6 +144,12 @@ export function useAuth() {
         }
         
         console.log("Sign up successful:", data);
+        
+        // Save user data to custom users table
+        if (data.user) {
+          await saveUserToCustomTable(data.user.id, email, username);
+        }
+        
         toast.success("Account created successfully!");
         return { data, error: null };
       } catch (error: any) {

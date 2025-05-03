@@ -13,6 +13,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, user } = useAuth();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,9 +23,26 @@ const Auth = () => {
     return null;
   }
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    if (!username.trim()) {
+      toast.error("Please enter a username");
+      setLoading(false);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast.error("Please enter a valid email address");
+      setLoading(false);
+      return;
+    }
     
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long");
@@ -33,7 +51,7 @@ const Auth = () => {
     }
     
     try {
-      const { data, error } = await signUp(username, password);
+      const { data, error } = await signUp(username, email, password);
 
       if (error) {
         toast.error(error.message || "Registration failed");
@@ -51,8 +69,14 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     
+    if (!validateEmail(email)) {
+      toast.error("Please enter a valid email address");
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const { data, error } = await signIn(username, password);
+      const { data, error } = await signIn(email, password);
 
       if (error) {
         toast.error(error.message || "Invalid login credentials");
@@ -87,12 +111,13 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="username"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -121,6 +146,17 @@ const Auth = () => {
                     placeholder="Choose a username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">Email</Label>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
