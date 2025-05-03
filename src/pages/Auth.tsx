@@ -12,9 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, user } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Redirect if user is already logged in
@@ -34,13 +33,12 @@ const Auth = () => {
     }
     
     try {
-      const { data, error } = await signUp(email, password, username);
+      const { data, error } = await signUp(username, password);
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message || "Registration failed");
       } else {
-        toast.success("Registration successful! Please check your email to confirm your account.");
-        // Don't navigate yet as the user needs to verify email first
+        toast.success("Registration successful! You can now login.");
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred during registration");
@@ -54,14 +52,10 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await signIn(email, password);
+      const { data, error } = await signIn(username, password);
 
       if (error) {
-        if (error.message.includes("Email not confirmed")) {
-          toast.error("Please confirm your email before logging in");
-        } else {
-          toast.error(error.message || "Invalid login credentials");
-        }
+        toast.error(error.message || "Invalid login credentials");
       } else {
         toast.success("Successfully logged in!");
         navigate("/dashboard");
@@ -93,13 +87,12 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="username">Username</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="username"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required
                   />
                 </div>
@@ -122,23 +115,12 @@ const Auth = () => {
             <TabsContent value="register">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="register-username">Username</Label>
                   <Input
-                    id="username"
+                    id="register-username"
                     placeholder="Choose a username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-email">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
