@@ -34,7 +34,7 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
           .from('leaderboard')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Using maybeSingle instead of single to handle case where no entry exists
           
         if (fetchError && fetchError.code !== 'PGRST116') {
           console.error('Error fetching leaderboard entry:', fetchError);
@@ -52,9 +52,11 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
         }
 
         const newRank = (betterScores ?? 0) + 1; // Rank is 1-based (1 is the best)
+        console.log(`Calculated rank: ${newRank} based on ${betterScores} better scores`);
         
         if (currentEntry) {
           // Update existing entry
+          console.log('Updating existing leaderboard entry:', currentEntry);
           const { error: updateError } = await supabase
             .from('leaderboard')
             .update({
@@ -62,7 +64,7 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
               games_won: currentEntry.games_won + (winner.name === user.user_metadata.username ? 1 : 0),
               rank: newRank
             })
-            .eq('user_id', user.id);
+            .eq('id', currentEntry.id);
             
           if (updateError) {
             console.error('Error updating leaderboard:', updateError);
@@ -71,6 +73,7 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
           }
         } else {
           // Create new entry
+          console.log('Creating new leaderboard entry for user:', user.id);
           const { error: insertError } = await supabase
             .from('leaderboard')
             .insert([

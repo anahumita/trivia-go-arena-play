@@ -21,7 +21,10 @@ export async function fetchFromApi<T>(
   options?: RequestInit
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    // Get the configured API URL or use the default
+    const apiUrl = (window as any).API_BASE_URL || API_BASE_URL;
+    
+    const response = await fetch(`${apiUrl}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -85,9 +88,26 @@ export async function saveGameResults(gameData: any) {
  * @param newUrl The new base URL for the API
  */
 export function configureApiUrl(newUrl: string) {
-  // In a real implementation, you might want to store this in localStorage 
-  // or another persistent storage
+  // Store the API URL in window object for persistence during the session
   (window as any).API_BASE_URL = newUrl;
   console.log(`API URL configured to: ${newUrl}`);
   toast.success('API connection configured successfully!');
+  
+  // Optionally store in localStorage for persistence between sessions
+  try {
+    localStorage.setItem('API_BASE_URL', newUrl);
+  } catch (e) {
+    console.warn('Could not save API URL to localStorage:', e);
+  }
+}
+
+// Initialize API URL from localStorage if available
+try {
+  const savedApiUrl = localStorage.getItem('API_BASE_URL');
+  if (savedApiUrl) {
+    (window as any).API_BASE_URL = savedApiUrl;
+    console.log(`Initialized API URL from localStorage: ${savedApiUrl}`);
+  }
+} catch (e) {
+  console.warn('Could not read API URL from localStorage:', e);
 }

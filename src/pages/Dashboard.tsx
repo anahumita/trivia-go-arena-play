@@ -48,17 +48,18 @@ const Dashboard = () => {
       if (!user) return;
       
       try {
-        // Get leaderboard entries and join with users to get usernames
+        // Get leaderboard entries with a direct join to users table to get usernames
         const { data, error } = await supabase
           .from('leaderboard')
           .select(`
             *,
-            users:user_id (
+            users!leaderboard_user_id_fkey (
               username
             )
           `)
-          .order('score', { ascending: false })
-          .limit(10);
+          .order('score', { ascending: false });
+        
+        console.log("Leaderboard fetch response:", { data, error });
         
         if (error) {
           console.error('Error fetching leaderboard:', error);
@@ -69,9 +70,10 @@ const Dashboard = () => {
         // Format the data to include username
         const formattedData = data.map(entry => ({
           ...entry,
-          username: entry.users?.username
+          username: entry.users?.username || 'Unknown Player'
         }));
         
+        console.log("Formatted leaderboard data:", formattedData);
         setLeaderboard(formattedData);
       } catch (error) {
         console.error('Exception fetching leaderboard:', error);
@@ -191,7 +193,7 @@ const Dashboard = () => {
                     <TableRow key={entry.id} className={user?.id === entry.user_id ? "bg-primary/10" : ""}>
                       <TableCell>{entry.rank || index + 1}</TableCell>
                       <TableCell className="font-medium">
-                        {entry.username || 'Unknown Player'}
+                        {entry.username}
                         {user?.id === entry.user_id && <span className="ml-1 text-xs">(You)</span>}
                       </TableCell>
                       <TableCell>{entry.score}</TableCell>
