@@ -32,7 +32,8 @@ export const getRandomQuestion = async (usedQuestionIds: Set<number>): Promise<Q
     console.log(`Found ${questions.length} questions in database`);
     
     // Filter out questions that have already been used
-    const unusedQuestions = questions.filter(q => !usedQuestionIds.has(q.id));
+    // Convert string IDs to numbers using the hash function for comparison
+    const unusedQuestions = questions.filter(q => !usedQuestionIds.has(hashStringToNumber(q.id)));
     
     if (unusedQuestions.length === 0) {
       console.log("All questions have been used, clearing used IDs");
