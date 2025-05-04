@@ -132,7 +132,7 @@ const Dashboard = () => {
                 </Link>
               </Button>
               <Button asChild className="w-full justify-start" variant="outline" size="lg">
-                <Link to="/">
+                <Link to="/profile">
                   <User className="mr-2 h-5 w-5" />
                   View Profile
                 </Link>
