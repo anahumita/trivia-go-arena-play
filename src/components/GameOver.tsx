@@ -40,6 +40,18 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
           console.error('Error fetching leaderboard entry:', fetchError);
           return;
         }
+
+        // Calculate current rank by getting all scores higher than this one
+        const { count: betterScores, error: rankError } = await supabase
+          .from('leaderboard')
+          .select('*', { count: 'exact', head: true })
+          .gt('score', winner.score);
+
+        if (rankError) {
+          console.error('Error calculating rank:', rankError);
+        }
+
+        const newRank = (betterScores ?? 0) + 1; // Rank is 1-based (1 is the best)
         
         if (currentEntry) {
           // Update existing entry
@@ -47,7 +59,8 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
             .from('leaderboard')
             .update({
               score: Math.max(currentEntry.score, winner.score),
-              games_won: currentEntry.games_won + (winner.name === user.user_metadata.username ? 1 : 0)
+              games_won: currentEntry.games_won + (winner.name === user.user_metadata.username ? 1 : 0),
+              rank: newRank
             })
             .eq('user_id', user.id);
             
@@ -64,7 +77,8 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
               {
                 user_id: user.id,
                 score: winner.score,
-                games_won: winner.name === user.user_metadata.username ? 1 : 0
+                games_won: winner.name === user.user_metadata.username ? 1 : 0,
+                rank: newRank
               }
             ]);
             

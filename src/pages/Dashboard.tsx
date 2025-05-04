@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Brain, LogOut, User, Trophy } from 'lucide-react';
+import { LayoutDashboard, Brain, LogOut, User, Trophy, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,17 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { configureApiUrl } from '@/hooks/game/apiUtils';
 
 interface LeaderboardEntry {
   id: string;
@@ -30,6 +41,7 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiUrl, setApiUrl] = useState('');
   
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -81,6 +93,13 @@ const Dashboard = () => {
     }
   };
   
+  const handleApiConfigSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (apiUrl) {
+      configureApiUrl(apiUrl);
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-game-background to-white">
       <div className="container mx-auto px-4 py-12">
@@ -116,6 +135,36 @@ const Dashboard = () => {
                   View Profile
                 </Link>
               </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" className="w-full justify-start" size="lg">
+                    <Settings className="mr-2 h-5 w-5" />
+                    Configure API
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>API Configuration</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleApiConfigSubmit} className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="apiUrl">Swagger API URL</Label>
+                      <Input 
+                        id="apiUrl" 
+                        value={apiUrl}
+                        onChange={(e) => setApiUrl(e.target.value)}
+                        placeholder="https://your-swagger-api.com/api"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the base URL for your Swagger API. This will be used for fetching questions and storing game data.
+                      </p>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Save Configuration</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           
@@ -140,7 +189,7 @@ const Dashboard = () => {
                 <TableBody>
                   {leaderboard.map((entry, index) => (
                     <TableRow key={entry.id} className={user?.id === entry.user_id ? "bg-primary/10" : ""}>
-                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{entry.rank || index + 1}</TableCell>
                       <TableCell className="font-medium">
                         {entry.username || 'Unknown Player'}
                         {user?.id === entry.user_id && <span className="ml-1 text-xs">(You)</span>}
