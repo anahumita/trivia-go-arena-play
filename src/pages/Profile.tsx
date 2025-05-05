@@ -27,6 +27,18 @@ interface ProfileFormValues {
   favorite_categories?: string[];
 }
 
+// Add a custom interface for the user profile data that includes optional bio field
+interface UserProfileData {
+  id: string;
+  username: string;
+  email: string;
+  bio?: string; // Make bio optional since it might not exist in the database
+  favorite_categories?: string[];
+  created_at?: string;
+  last_login?: string;
+  password?: string;
+}
+
 const Profile = () => {
   const { user, loading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -68,12 +80,15 @@ const Profile = () => {
         }
         
         if (data) {
-          // Set form values
+          // Treat the data as UserProfileData which includes optional bio
+          const userData = data as UserProfileData;
+          
+          // Set form values, handling optional fields
           form.reset({
-            username: data.username || '',
-            email: data.email || user.email || '',
-            bio: data.bio || '',
-            favorite_categories: data.favorite_categories || []
+            username: userData.username || '',
+            email: userData.email || user.email || '',
+            bio: userData.bio || '', // Handle case where bio might not exist
+            favorite_categories: userData.favorite_categories || []
           });
         }
       } catch (error) {
@@ -83,21 +98,28 @@ const Profile = () => {
     };
     
     fetchUserProfile();
-  }, [user, form.reset]);
+  }, [user, form]);
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
     
     setIsSaving(true);
     try {
+      // Prepare the data for update, only including fields that exist in the table
+      const updateData: any = {
+        username: values.username,
+        favorite_categories: values.favorite_categories
+      };
+      
+      // Only include bio if it's provided
+      if (values.bio !== undefined) {
+        updateData.bio = values.bio;
+      }
+      
       // Update user data in the users table
       const { error } = await supabase
         .from('users')
-        .update({
-          username: values.username,
-          bio: values.bio,
-          favorite_categories: values.favorite_categories
-        })
+        .update(updateData)
         .eq('id', user.id);
       
       if (error) {
