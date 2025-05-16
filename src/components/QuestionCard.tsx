@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface QuestionCardProps {
   question: Question;
@@ -21,6 +22,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
   // Shuffle options when the question changes
   useEffect(() => {
     setIsLoading(true);
+    setSelectedAnswer(null);
     
     try {
       // Check if options exist and are valid
@@ -51,8 +53,16 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
 
   const handleSelectAnswer = (answer: string) => {
     if (answerSelected) return;
+    
     setSelectedAnswer(answer);
     onAnswer(answer);
+    
+    // Show toast feedback
+    if (answer === question.correctAnswer) {
+      toast.success("Correct answer!");
+    } else {
+      toast.error("Wrong answer!");
+    }
   };
 
   // Decode HTML entities (for questions that may contain HTML entities from the API)
@@ -65,21 +75,29 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
 
   return (
     <div className="w-full max-w-2xl mx-auto mt-4 animate-fade-in">
-      <Card className="shadow-lg">
+      <Card className="shadow-lg border-2 hover:border-primary/50 transition-all">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <Badge variant="outline">{question.category || 'General'}</Badge>
+            <Badge 
+              variant="outline" 
+              className="text-xs font-medium bg-primary/10"
+            >
+              {question.category || 'General'}
+            </Badge>
             <Badge 
               variant={
                 question.difficulty === 'easy' ? 'default' : 
                 question.difficulty === 'medium' ? 'secondary' : 
                 'destructive'
               }
+              className="text-xs font-medium"
             >
               {question.difficulty || 'medium'}
             </Badge>
           </div>
-          <CardTitle className="text-xl mt-2">{decodeHTML(question.question)}</CardTitle>
+          <CardTitle className="text-xl mt-2 font-bold">
+            {decodeHTML(question.question)}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -87,7 +105,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {shuffledOptions.map((option) => (
                 <Button
                   key={option}
@@ -99,8 +117,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
                       : "outline"
                   }
                   className={cn(
-                    "h-auto py-3 justify-start text-left",
-                    selectedAnswer === option && !answerSelected && "border-primary"
+                    "h-auto py-4 justify-start text-left transition-all",
+                    selectedAnswer === option && !answerSelected && "border-primary border-2",
+                    answerSelected && option === question.correctAnswer && "bg-green-600 hover:bg-green-600 text-white",
+                    answerSelected && option === selectedAnswer && option !== question.correctAnswer && "bg-red-600 hover:bg-red-600 text-white"
                   )}
                   onClick={() => handleSelectAnswer(option)}
                   disabled={answerSelected}
@@ -112,14 +132,19 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
           )}
         </CardContent>
         {answerSelected && (
-          <CardFooter className="flex justify-center">
+          <CardFooter className="flex justify-center pt-2 pb-4">
             <div className="text-center">
               {selectedAnswer === question.correctAnswer ? (
-                <p className="text-green-600 font-bold">Correct! Well done!</p>
+                <p className="text-green-600 font-bold text-lg">Correct! Well done!</p>
               ) : (
-                <p className="text-destructive font-bold">
-                  Wrong! The correct answer is: {decodeHTML(question.correctAnswer)}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-destructive font-bold text-lg">
+                    Wrong! The correct answer is:
+                  </p>
+                  <p className="bg-green-50 p-2 rounded-md text-green-700 font-medium">
+                    {decodeHTML(question.correctAnswer)}
+                  </p>
+                </div>
               )}
             </div>
           </CardFooter>
