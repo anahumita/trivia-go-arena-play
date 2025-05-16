@@ -1,13 +1,24 @@
 
 import { toast } from 'sonner';
+import { Question } from '@/types/game';
 
-// Define the base URL for your Swagger API
-const API_BASE_URL = "https://your-swagger-api-url.com/api";
+// Define the base URL for the Swagger API
+const API_BASE_URL = "https://app.swaggerhub.com/apis/uvt-d28/TRIVIA/1.0.0";
 
 // Define types for API responses
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+}
+
+// Define the structure of the question from the API
+interface ApiQuestion {
+  id: string;
+  question: string;
+  correct_answer: string;
+  incorrect_answers: string[];
+  category: string;
+  difficulty: string;
 }
 
 /**
@@ -52,12 +63,45 @@ export async function fetchFromApi<T>(
 }
 
 /**
+ * Transform API questions to our Question format
+ * @param apiQuestions Questions from the API
+ * @returns Questions in our app format
+ */
+function transformQuestions(apiQuestions: ApiQuestion[]): Question[] {
+  return apiQuestions.map(q => {
+    // Generate a numeric ID from the string ID using simple hash
+    const idNumber = hashStringToNumber(q.id);
+    
+    // Create all options by combining correct and incorrect answers
+    const options = [q.correct_answer, ...q.incorrect_answers];
+    
+    // Normalize difficulty to match our app's format
+    let normalizedDifficulty: "easy" | "medium" | "hard" = "easy";
+    if (q.difficulty) {
+      const difficultyLower = q.difficulty.toLowerCase();
+      if (difficultyLower === "easy" || difficultyLower === "medium" || difficultyLower === "hard") {
+        normalizedDifficulty = difficultyLower as "easy" | "medium" | "hard";
+      }
+    }
+    
+    return {
+      id: idNumber,
+      question: q.question,
+      correctAnswer: q.correct_answer,
+      options: options,
+      category: q.category,
+      difficulty: normalizedDifficulty
+    };
+  });
+}
+
+/**
  * Get questions from the API
  * @param category Optional category filter
  * @param difficulty Optional difficulty level
  * @returns Promise with the questions data
  */
-export async function fetchQuestions(category?: string, difficulty?: string) {
+export async function fetchQuestions(category?: string, difficulty?: string): Promise<ApiResponse<Question[]>> {
   let endpoint = '/questions';
   const queryParams = [];
   
@@ -68,7 +112,35 @@ export async function fetchQuestions(category?: string, difficulty?: string) {
     endpoint += `?${queryParams.join('&')}`;
   }
   
-  return fetchFromApi(endpoint);
+  try {
+    const response = await fetchFromApi<ApiQuestion[]>(endpoint);
+    
+    if (response.error) {
+      return { error: response.error };
+    }
+    
+    if (!response.data) {
+      return { error: 'No data received from API' };
+    }
+    
+    // Transform the API questions to our format
+    const questions = transformQuestions(response.data);
+    return { data: questions };
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    return { error: 'Failed to fetch questions' };
+  }
+}
+
+// Simple hash function to convert UUID string to number
+function hashStringToNumber(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
 }
 
 /**
@@ -93,7 +165,7 @@ export function configureApiUrl(newUrl: string) {
   console.log(`API URL configured to: ${newUrl}`);
   toast.success('API connection configured successfully!');
   
-  // Optionally store in localStorage for persistence between sessions
+  // Store in localStorage for persistence between sessions
   try {
     localStorage.setItem('API_BASE_URL', newUrl);
   } catch (e) {

@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { Player, Question, GameMode, GameStatus } from '@/types/game';
 import { toast } from '@/components/ui/use-toast';
-import { MAX_ROUNDS, MAX_POSITION, getRandomQuestion, processSquareEffect } from './gameUtils';
+import { MAX_ROUNDS, MAX_POSITION, processSquareEffect } from './gameUtils';
+import { fetchQuestions } from './apiUtils';
 import { GameState } from './types';
 
 export const useGameState = () => {
@@ -13,6 +14,7 @@ export const useGameState = () => {
   const [round, setRound] = useState(1);
   const [showQuestion, setShowQuestion] = useState(false);
   const [answerSelected, setAnswerSelected] = useState(false);
+  const [loadingQuestion, setLoadingQuestion] = useState(false);
   
   const usedQuestionIds = useRef<Set<number>>(new Set());
 
@@ -73,9 +75,41 @@ export const useGameState = () => {
       return;
     }
     
+    setLoadingQuestion(true);
     try {
-      const question = await getRandomQuestion(usedQuestionIds.current);
-      setCurrentQuestion(question);
+      // Fetch a question from the API
+      const response = await fetchQuestions();
+      
+      if (response.error || !response.data || response.data.length === 0) {
+        toast({
+          title: "Error",
+          description: "Failed to load question. Please check API configuration.",
+          variant: "destructive"
+        });
+        console.error("API error:", response.error);
+        setLoadingQuestion(false);
+        return;
+      }
+      
+      // Get a random question from the response
+      const questions = response.data;
+      const availableQuestions = questions.filter(q => !usedQuestionIds.current.has(q.id));
+      
+      // If we've used too many questions, reset the used IDs
+      if (availableQuestions.length === 0 && questions.length > 0) {
+        console.log("All questions have been used, resetting used question IDs");
+        usedQuestionIds.current.clear();
+      }
+      
+      // Select a random question
+      const questionPool = availableQuestions.length > 0 ? availableQuestions : questions;
+      const randomIndex = Math.floor(Math.random() * questionPool.length);
+      const selectedQuestion = questionPool[randomIndex];
+      
+      // Mark this question as used
+      usedQuestionIds.current.add(selectedQuestion.id);
+      
+      setCurrentQuestion(selectedQuestion);
       setShowQuestion(true);
       setAnswerSelected(false);
     } catch (error) {
@@ -85,6 +119,8 @@ export const useGameState = () => {
         description: "Failed to load question. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setLoadingQuestion(false);
     }
   }, [currentPlayerIndex, players, moveToNextPlayer]);
 
@@ -237,6 +273,7 @@ export const useGameState = () => {
     round,
     showQuestion,
     answerSelected,
+    loadingQuestion,
     initializeGame,
     startTurn,
     handleAnswer,

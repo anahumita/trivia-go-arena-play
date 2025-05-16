@@ -10,6 +10,11 @@ import ExitButton from '@/components/ExitButton';
 import { useGameState } from '@/hooks/useGameState';
 import { GameMode } from '@/types/game';
 import { toast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { configureApiUrl } from '@/hooks/game/apiUtils';
 
 const Game: React.FC = () => {
   const {
@@ -30,8 +35,22 @@ const Game: React.FC = () => {
   } = useGameState();
   
   const [timeRemaining, setTimeRemaining] = useState<number>(10);
+  const [showApiConfig, setShowApiConfig] = useState<boolean>(false);
+  const [apiUrl, setApiUrl] = useState<string>("");
 
   const currentPlayer = players[currentPlayerIndex] || { id: 0, name: '', position: 0, score: 0, skipNextTurn: false };
+
+  // Handle API URL configuration
+  const handleApiConfig = () => {
+    if (apiUrl.trim()) {
+      configureApiUrl(apiUrl.trim());
+      setShowApiConfig(false);
+      toast({
+        title: "API Configured",
+        description: "The API URL has been set successfully.",
+      });
+    }
+  };
 
   // Question timer effect
   useEffect(() => {
@@ -80,7 +99,42 @@ const Game: React.FC = () => {
       <ExitButton />
       
       {gameStatus === 'setup' && (
-        <GameSetup onStartGame={(mode: GameMode, playerNames: string[]) => initializeGame(mode, playerNames)} />
+        <>
+          <div className="mb-4 flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowApiConfig(!showApiConfig)}
+            >
+              {showApiConfig ? 'Hide API Config' : 'Configure API'}
+            </Button>
+          </div>
+          
+          {showApiConfig && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Configure API Source</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  <Label htmlFor="api-url">API URL</Label>
+                  <Input 
+                    id="api-url"
+                    placeholder="Enter API URL (e.g., https://app.swaggerhub.com/apis/uvt-d28/TRIVIA/1.0.0)"
+                    value={apiUrl}
+                    onChange={(e) => setApiUrl(e.target.value)}
+                  />
+                  <Button onClick={handleApiConfig}>Save API Configuration</Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Default API: https://app.swaggerhub.com/apis/uvt-d28/TRIVIA/1.0.0
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          <GameSetup onStartGame={(mode: GameMode, playerNames: string[]) => initializeGame(mode, playerNames)} />
+        </>
       )}
       
       {gameStatus === 'playing' && (
