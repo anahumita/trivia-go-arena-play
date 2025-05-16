@@ -73,6 +73,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
     return textarea.value;
   };
 
+  // Extract source information from the question object if available
+  const getQuestionSource = () => {
+    if (question.id) {
+      return `Question ID: ${question.id}`;
+    }
+    return 'API Question';
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto mt-4 animate-fade-in">
       <Card className="shadow-lg border-2 hover:border-primary/50 transition-all">
@@ -98,6 +106,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
           <CardTitle className="text-xl mt-2 font-bold">
             {decodeHTML(question.question)}
           </CardTitle>
+          <div className="text-xs text-muted-foreground">
+            {getQuestionSource()}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

@@ -39,6 +39,8 @@ export async function fetchFromApi<T>(
     // Get the configured API URL or use the default
     const apiUrl = (window as any).API_BASE_URL || API_BASE_URL;
     
+    console.log(`Fetching from API: ${apiUrl}${endpoint}`);
+    
     const response = await fetch(`${apiUrl}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -51,13 +53,14 @@ export async function fetchFromApi<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('API Error:', errorData);
+      console.error('API Error:', errorData, 'Status:', response.status);
       return { 
         error: errorData.message || `Error: ${response.status} ${response.statusText}` 
       };
     }
 
     const data = await response.json();
+    console.log(`API Response for ${endpoint}:`, data);
     return { data };
   } catch (error) {
     console.error('API Request failed:', error);
@@ -115,18 +118,23 @@ export async function fetchQuestions(category?: string, difficulty?: string): Pr
   }
   
   try {
+    console.log(`Fetching questions with params:`, { category, difficulty });
     const response = await fetchFromApi<ApiQuestion[]>(endpoint);
     
     if (response.error) {
+      toast.error(`API Error: ${response.error}`);
       return { error: response.error };
     }
     
     if (!response.data) {
+      console.error('No data received from API');
       return { error: 'No data received from API' };
     }
     
     // Transform the API questions to our format
     const questions = transformQuestions(response.data);
+    console.log(`Transformed ${questions.length} questions from API`);
+    toast.success(`Loaded ${questions.length} questions from API`);
     return { data: questions };
   } catch (error) {
     console.error('Error fetching questions:', error);
