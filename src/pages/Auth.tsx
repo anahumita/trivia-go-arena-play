@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -16,12 +17,15 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Redirect if user is already logged in
-  if (user) {
-    navigate('/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      console.log("User is logged in, redirecting to dashboard");
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,15 +55,18 @@ const Auth = () => {
     }
     
     try {
+      console.log("Attempting signup with:", { username, email });
       const { data, error } = await signUp(username, email, password);
 
       if (error) {
+        console.error("Signup error:", error);
         toast.error(error.message || "Registration failed");
       } else {
-        toast.success("Registration successful! Redirecting to dashboard...");
-        navigate("/dashboard");
+        toast.success("Registration successful!");
+        setShowConfirmDialog(true);
       }
     } catch (error: any) {
+      console.error("Exception during signup:", error);
       toast.error(error.message || "An error occurred during registration");
     } finally {
       setLoading(false);
@@ -77,20 +84,38 @@ const Auth = () => {
     }
     
     try {
+      console.log("Attempting login with:", { email });
       const { data, error } = await signIn(email, password);
 
       if (error) {
-        toast.error(error.message || "Invalid login credentials");
+        console.error("Login error:", error);
+        
+        if (error.message?.includes("Email not confirmed")) {
+          toast.error("Please check your email and confirm your account before logging in");
+          setShowConfirmDialog(true);
+        } else {
+          toast.error(error.message || "Invalid login credentials");
+        }
       } else {
         toast.success("Successfully logged in!");
         navigate("/dashboard");
       }
     } catch (error: any) {
+      console.error("Exception during login:", error);
       toast.error(error.message || "An error occurred during login");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCloseDialog = () => {
+    setShowConfirmDialog(false);
+  };
+
+  // If already redirecting due to being logged in
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-game-background to-white flex items-center justify-center p-4">
@@ -120,6 +145,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
                   />
                 </div>
                 <div className="space-y-2">
@@ -131,6 +157,7 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -148,6 +175,7 @@ const Auth = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
+                    autoComplete="username"
                   />
                 </div>
                 <div className="space-y-2">
@@ -159,6 +187,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
                   />
                 </div>
                 <div className="space-y-2">
@@ -171,6 +200,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
+                    autoComplete="new-password"
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -186,6 +216,26 @@ const Auth = () => {
           </p>
         </CardFooter>
       </Card>
+
+      {/* Email Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Confirmation Required</DialogTitle>
+            <DialogDescription className="py-4">
+              <p className="mb-4">
+                We've sent a confirmation email to <strong>{email}</strong>. Please check your inbox and click the confirmation link to activate your account.
+              </p>
+              <p className="mb-4">
+                If you don't see the email, please check your spam folder.
+              </p>
+              <Button onClick={handleCloseDialog} className="w-full">
+                I'll check my email
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

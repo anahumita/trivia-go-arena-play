@@ -140,6 +140,8 @@ export function useAuth() {
     signIn: async (email: string, password: string) => {
       try {
         console.log(`Attempting to sign in user with email: ${email}`);
+        
+        // Try to sign in with password
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -147,8 +149,18 @@ export function useAuth() {
         
         if (error) {
           console.error("Login error:", error.message);
-          toast.error(error.message || "Login failed");
-          throw error;
+          
+          // If the error is about email confirmation, we can try to resend the confirmation email
+          if (error.message?.includes("Email not confirmed")) {
+            // Optionally resend confirmation email
+            await supabase.auth.resend({
+              type: 'signup',
+              email: email,
+            });
+            console.log("Resent confirmation email");
+          }
+          
+          return { data: null, error };
         }
         
         console.log("Sign in successful:", data);
@@ -179,6 +191,7 @@ export function useAuth() {
           password,
           options: {
             data: { username },
+            emailRedirectTo: window.location.origin + '/auth',
           },
         });
         
@@ -197,7 +210,6 @@ export function useAuth() {
           await updateLeaderboardForUser(data.user.id);
         }
         
-        toast.success("Account created successfully!");
         return { data, error: null };
       } catch (error: any) {
         console.error("Signup error:", error.message);
