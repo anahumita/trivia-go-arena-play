@@ -23,13 +23,22 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
     setIsLoading(true);
     
     try {
-      // Create a copy of the options array and shuffle it
-      const shuffled = [...question.options].sort(() => Math.random() - 0.5);
-      setShuffledOptions(shuffled);
+      // Check if options exist and are valid
+      if (!Array.isArray(question.options) || question.options.length === 0) {
+        console.error("Invalid or missing options array:", question.options);
+        // Create a default options array with the correct answer
+        const defaultOptions = [question.correctAnswer, "Option 2", "Option 3", "Option 4"];
+        setShuffledOptions(defaultOptions);
+      } else {
+        // Create a copy of the options array and shuffle it
+        const shuffled = [...question.options].sort(() => Math.random() - 0.5);
+        setShuffledOptions(shuffled);
+      }
     } catch (error) {
       console.error("Error shuffling options:", error);
-      // If there's an error, use the original options
-      setShuffledOptions(question.options);
+      // If there's an error, use the original options or create defaults
+      const fallbackOptions = Array.isArray(question.options) ? question.options : [question.correctAnswer];
+      setShuffledOptions(fallbackOptions);
     }
     
     // Add a short delay to prevent UI flicker
@@ -48,6 +57,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
 
   // Decode HTML entities (for questions that may contain HTML entities from the API)
   const decodeHTML = (html: string) => {
+    if (!html) return '';
     const textarea = document.createElement('textarea');
     textarea.innerHTML = html;
     return textarea.value;
@@ -58,7 +68,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <Badge variant="outline">{question.category}</Badge>
+            <Badge variant="outline">{question.category || 'General'}</Badge>
             <Badge 
               variant={
                 question.difficulty === 'easy' ? 'default' : 
@@ -66,7 +76,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onAnswer, answerS
                 'destructive'
               }
             >
-              {question.difficulty}
+              {question.difficulty || 'medium'}
             </Badge>
           </div>
           <CardTitle className="text-xl mt-2">{decodeHTML(question.question)}</CardTitle>

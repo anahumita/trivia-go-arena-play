@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import GameSetup from '@/components/GameSetup';
 import GameBoard from '@/components/GameBoard';
@@ -36,7 +35,7 @@ const Game: React.FC = () => {
   
   const [timeRemaining, setTimeRemaining] = useState<number>(10);
   const [showApiConfig, setShowApiConfig] = useState<boolean>(false);
-  const [apiUrl, setApiUrl] = useState<string>("");
+  const [apiUrl, setApiUrl] = useState<string>("https://unveweezricvhihoudna.supabase.co/rest/v1");
 
   const currentPlayer = players[currentPlayerIndex] || { id: 0, name: '', position: 0, score: 0, skipNextTurn: false };
 
@@ -120,13 +119,13 @@ const Game: React.FC = () => {
                   <Label htmlFor="api-url">API URL</Label>
                   <Input 
                     id="api-url"
-                    placeholder="Enter API URL (e.g., https://app.swaggerhub.com/apis/uvt-d28/TRIVIA/1.0.0)"
+                    placeholder="Enter Supabase API URL"
                     value={apiUrl}
                     onChange={(e) => setApiUrl(e.target.value)}
                   />
                   <Button onClick={handleApiConfig}>Save API Configuration</Button>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Default API: https://app.swaggerhub.com/apis/uvt-d28/TRIVIA/1.0.0
+                    Default API: https://unveweezricvhihoudna.supabase.co/rest/v1
                   </p>
                 </div>
               </CardContent>

@@ -2,8 +2,11 @@
 import { toast } from 'sonner';
 import { Question } from '@/types/game';
 
-// Define the base URL for the Swagger API
-const API_BASE_URL = "https://app.swaggerhub.com/apis/uvt-d28/TRIVIA/1.0.0";
+// Define the base URL for the Supabase REST API
+const API_BASE_URL = "https://unveweezricvhihoudna.supabase.co/rest/v1";
+
+// Define the API key (anon key) from Supabase
+const SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVudmV3ZWV6cmljdmhpaG91ZG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NDY0OTAsImV4cCI6MjA2MTMyMjQ5MH0.sqxKlYhJGPfx67v7Vflc2UijACuHvtz2u2KLL-IljMo";
 
 // Define types for API responses
 interface ApiResponse<T> {
@@ -16,9 +19,10 @@ interface ApiQuestion {
   id: string;
   question: string;
   correct_answer: string;
-  incorrect_answers: string[];
+  options: string[];
   category: string;
   difficulty: string;
+  explanation?: string;
 }
 
 /**
@@ -39,8 +43,8 @@ export async function fetchFromApi<T>(
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        // Add any auth headers if required
-        // 'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`,
+        'apikey': SUPABASE_API_KEY,
+        'Authorization': `Bearer ${SUPABASE_API_KEY}`
       },
       ...options,
     });
@@ -72,9 +76,6 @@ function transformQuestions(apiQuestions: ApiQuestion[]): Question[] {
     // Generate a numeric ID from the string ID using simple hash
     const idNumber = hashStringToNumber(q.id);
     
-    // Create all options by combining correct and incorrect answers
-    const options = [q.correct_answer, ...q.incorrect_answers];
-    
     // Normalize difficulty to match our app's format
     let normalizedDifficulty: "easy" | "medium" | "hard" = "easy";
     if (q.difficulty) {
@@ -88,7 +89,7 @@ function transformQuestions(apiQuestions: ApiQuestion[]): Question[] {
       id: idNumber,
       question: q.question,
       correctAnswer: q.correct_answer,
-      options: options,
+      options: q.options || [],
       category: q.category,
       difficulty: normalizedDifficulty
     };
@@ -105,8 +106,9 @@ export async function fetchQuestions(category?: string, difficulty?: string): Pr
   let endpoint = '/questions';
   const queryParams = [];
   
-  if (category) queryParams.push(`category=${encodeURIComponent(category)}`);
-  if (difficulty) queryParams.push(`difficulty=${encodeURIComponent(difficulty)}`);
+  // Using PostgreSQL eq.value format for filtering in Supabase REST
+  if (category) queryParams.push(`category=eq.${encodeURIComponent(category)}`);
+  if (difficulty) queryParams.push(`difficulty=eq.${encodeURIComponent(difficulty)}`);
   
   if (queryParams.length > 0) {
     endpoint += `?${queryParams.join('&')}`;
