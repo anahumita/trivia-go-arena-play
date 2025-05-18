@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { Question } from '@/types/game';
 
@@ -25,6 +24,15 @@ interface ApiQuestion {
   explanation?: string;
 }
 
+// Define the structure for user data from the API
+export interface ApiUser {
+  id: string;
+  username: string;
+  email: string;
+  created_at: string;
+  total_points: number;
+}
+
 /**
  * Generic function to fetch data from the API
  * @param endpoint The API endpoint to call
@@ -40,14 +48,21 @@ export async function fetchFromApi<T>(
     const apiUrl = (window as any).API_BASE_URL || API_BASE_URL;
     
     console.log(`Fetching from API: ${apiUrl}${endpoint}`);
-    console.log('Using API key:', SUPABASE_API_KEY ? 'API key is present' : 'API key is missing');
+    
+    // Always ensure we have the latest API key
+    const apiKey = SUPABASE_API_KEY;
+    console.log('Using API key:', apiKey ? 'API key is present' : 'API key is missing');
     
     // Ensure headers are properly initialized
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'apikey': SUPABASE_API_KEY,
-      'Authorization': `Bearer ${SUPABASE_API_KEY}`
+      'apikey': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
+      // Add CORS headers
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey'
     };
     
     // Log headers for debugging
@@ -149,6 +164,65 @@ export async function fetchQuestions(category?: string, difficulty?: string): Pr
   }
 }
 
+/**
+ * Fetch all users from the API
+ * @returns Promise with the users data
+ */
+export async function fetchUsers(): Promise<ApiResponse<ApiUser[]>> {
+  try {
+    console.log('Fetching users from API');
+    const response = await fetchFromApi<ApiUser[]>('/users');
+    
+    if (response.error) {
+      toast.error(`API Error: ${response.error}`);
+      return { error: response.error };
+    }
+    
+    if (!response.data) {
+      console.error('No user data received from API');
+      return { error: 'No user data received from API' };
+    }
+    
+    console.log(`Fetched ${response.data.length} users from API`);
+    toast.success(`Loaded ${response.data.length} users from API`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return { error: 'Failed to fetch users' };
+  }
+}
+
+/**
+ * Fetch a specific user by ID
+ * @param userId The ID of the user to fetch
+ * @returns Promise with the user data
+ */
+export async function fetchUserById(userId: string): Promise<ApiResponse<ApiUser>> {
+  try {
+    console.log(`Fetching user with ID: ${userId}`);
+    const endpoint = `/users?id=eq.${userId}`;
+    const response = await fetchFromApi<ApiUser[]>(endpoint);
+    
+    if (response.error) {
+      toast.error(`API Error: ${response.error}`);
+      return { error: response.error };
+    }
+    
+    if (!response.data || response.data.length === 0) {
+      const errorMsg = `User with ID ${userId} not found`;
+      console.error(errorMsg);
+      return { error: errorMsg };
+    }
+    
+    // Return the first (and should be only) user that matches
+    console.log(`Found user: ${response.data[0].username}`);
+    return { data: response.data[0] };
+  } catch (error) {
+    console.error(`Error fetching user with ID ${userId}:`, error);
+    return { error: `Failed to fetch user with ID ${userId}` };
+  }
+}
+
 // Simple hash function to convert UUID string to number
 function hashStringToNumber(str: string): number {
   let hash = 0;
@@ -195,6 +269,29 @@ export function configureApiUrl(newUrl: string) {
     localStorage.setItem('SUPABASE_API_KEY', SUPABASE_API_KEY);
   } catch (e) {
     console.warn('Could not save API settings to localStorage:', e);
+  }
+}
+
+/**
+ * Test the connection to the API
+ * @returns Promise with a boolean indicating if the connection is successful
+ */
+export async function testApiConnection(): Promise<boolean> {
+  try {
+    console.log('Testing API connection...');
+    // Try to get a single user to test connection
+    const response = await fetchFromApi<ApiUser[]>('/users?limit=1');
+    
+    if (response.error) {
+      console.error('API connection test failed:', response.error);
+      return false;
+    }
+    
+    console.log('API connection test successful!');
+    return true;
+  } catch (error) {
+    console.error('API connection test error:', error);
+    return false;
   }
 }
 

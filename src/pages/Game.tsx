@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import GameSetup from '@/components/GameSetup';
 import GameBoard from '@/components/GameBoard';
@@ -14,8 +13,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { configureApiUrl } from '@/hooks/game/apiUtils';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { 
+  configureApiUrl, 
+  testApiConnection, 
+  fetchUsers, 
+  ApiUser 
+} from '@/hooks/game/apiUtils';
+import { AlertCircle, RefreshCw, Users } from 'lucide-react';
 
 const Game: React.FC = () => {
   const {
@@ -40,6 +44,9 @@ const Game: React.FC = () => {
   const [apiUrl, setApiUrl] = useState<string>("https://unveweezricvhihoudna.supabase.co/rest/v1");
   const [apiConnectionStatus, setApiConnectionStatus] = useState<'pending' | 'connected' | 'error'>('pending');
   const [isCheckingApi, setIsCheckingApi] = useState<boolean>(false);
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [showUsers, setShowUsers] = useState<boolean>(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
 
   const currentPlayer = players[currentPlayerIndex] || { id: 0, name: '', position: 0, score: 0, skipNextTurn: false };
 
@@ -58,46 +65,25 @@ const Game: React.FC = () => {
     }
   };
   
-  // Function to check API connection
+  // Function to check API connection using our new utility function
   const checkApiConnection = async () => {
     try {
       setIsCheckingApi(true);
       setApiConnectionStatus('pending');
       
-      // Make sure we're using the latest API key
-      const apiKey = (window as any).SUPABASE_API_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVudmV3ZWV6cmljdmhpaG91ZG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NDY0OTAsImV4cCI6MjA2MTMyMjQ5MH0.sqxKlYhJGPfx67v7Vflc2UijACuHvtz2u2KLL-IljMo";
+      const isConnected = await testApiConnection();
       
-      console.log('Checking API connection with key:', apiKey ? 'Key present' : 'Key missing');
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'apikey': apiKey,
-        'Authorization': `Bearer ${apiKey}`
-      };
-      
-      console.log('API check headers:', JSON.stringify(headers, null, 2));
-      
-      const response = await fetch(`${apiUrl}/questions?limit=1`, {
-        headers
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('API Connection Test Result:', data);
+      if (isConnected) {
         setApiConnectionStatus('connected');
         toast({
           title: "API Connection Verified",
-          description: "Successfully connected to the Supabase questions API.",
+          description: "Successfully connected to the Supabase API.",
         });
       } else {
-        console.error('API Connection Test Failed:', response.status, response.statusText);
-        const errorText = await response.text().catch(() => 'Unknown error');
-        console.error('Error response:', errorText);
         setApiConnectionStatus('error');
         toast({
           title: "API Connection Failed",
-          description: `Error ${response.status}: ${response.statusText}`,
+          description: "Could not connect to the API. Please check your API configuration.",
           variant: "destructive"
         });
       }
@@ -114,10 +100,41 @@ const Game: React.FC = () => {
     }
   };
   
+  // Function to fetch users from the API
+  const loadUsers = async () => {
+    try {
+      setIsLoadingUsers(true);
+      const response = await fetchUsers();
+      
+      if (response.error) {
+        toast({
+          title: "Error Loading Users",
+          description: response.error,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (response.data) {
+        setUsers(response.data);
+        setShowUsers(true);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error Loading Users",
+        description: "Could not load users from the API",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+  
   // Check API connection on component mount
   useEffect(() => {
     checkApiConnection();
-  }, [apiUrl]);
+  }, []);
 
   // Question timer effect
   useEffect(() => {
@@ -194,7 +211,65 @@ const Game: React.FC = () => {
           <RefreshCw className={`h-4 w-4 ${isCheckingApi ? 'animate-spin' : ''}`} />
           <span className="sr-only">Refresh API connection</span>
         </Button>
+        
+        {apiConnectionStatus === 'connected' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-1 h-auto flex items-center gap-1"
+            onClick={loadUsers}
+            disabled={isLoadingUsers}
+          >
+            <Users className="h-4 w-4" />
+            <span className="text-xs">Test Users API</span>
+          </Button>
+        )}
       </div>
+      
+      {/* Users List from API (for testing) */}
+      {showUsers && (
+        <Card className="mb-6">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Users from API</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowUsers(false)}
+            >
+              Hide
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoadingUsers ? (
+              <div className="flex justify-center py-4">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : users.length === 0 ? (
+              <p>No users found</p>
+            ) : (
+              <div className="space-y-2">
+                {users.map(user => (
+                  <div 
+                    key={user.id} 
+                    className="bg-muted p-3 rounded-md flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-medium">{user.username}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Points: {user.total_points}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
       
       {gameStatus === 'setup' && (
         <>
