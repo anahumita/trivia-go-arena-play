@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { configureApiUrl } from '@/hooks/game/apiUtils';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const Game: React.FC = () => {
   const {
@@ -39,6 +39,7 @@ const Game: React.FC = () => {
   const [showApiConfig, setShowApiConfig] = useState<boolean>(false);
   const [apiUrl, setApiUrl] = useState<string>("https://unveweezricvhihoudna.supabase.co/rest/v1");
   const [apiConnectionStatus, setApiConnectionStatus] = useState<'pending' | 'connected' | 'error'>('pending');
+  const [isCheckingApi, setIsCheckingApi] = useState<boolean>(false);
 
   const currentPlayer = players[currentPlayerIndex] || { id: 0, name: '', position: 0, score: 0, skipNextTurn: false };
 
@@ -52,58 +53,69 @@ const Game: React.FC = () => {
         description: "The API URL has been set successfully.",
       });
       
-      // Update connection status
-      setApiConnectionStatus('connected');
+      // Run connection check after configuration
+      checkApiConnection();
+    }
+  };
+  
+  // Function to check API connection
+  const checkApiConnection = async () => {
+    try {
+      setIsCheckingApi(true);
+      setApiConnectionStatus('pending');
       
-      // Show success notification
-      toast({
-        title: "API Connection Successful",
-        description: "The application is now connected to the questions API.",
+      // Make sure we're using the latest API key
+      const apiKey = (window as any).SUPABASE_API_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVudmV3ZWV6cmljdmhpaG91ZG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NDY0OTAsImV4cCI6MjA2MTMyMjQ5MH0.sqxKlYhJGPfx67v7Vflc2UijACuHvtz2u2KLL-IljMo";
+      
+      console.log('Checking API connection with key:', apiKey ? 'Key present' : 'Key missing');
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`
+      };
+      
+      console.log('API check headers:', JSON.stringify(headers, null, 2));
+      
+      const response = await fetch(`${apiUrl}/questions?limit=1`, {
+        headers
       });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('API Connection Test Result:', data);
+        setApiConnectionStatus('connected');
+        toast({
+          title: "API Connection Verified",
+          description: "Successfully connected to the Supabase questions API.",
+        });
+      } else {
+        console.error('API Connection Test Failed:', response.status, response.statusText);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('Error response:', errorText);
+        setApiConnectionStatus('error');
+        toast({
+          title: "API Connection Failed",
+          description: `Error ${response.status}: ${response.statusText}`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('API Connection Error:', error);
+      setApiConnectionStatus('error');
+      toast({
+        title: "API Connection Error",
+        description: error instanceof Error ? error.message : "Failed to connect to API",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingApi(false);
     }
   };
   
   // Check API connection on component mount
   useEffect(() => {
-    const checkApiConnection = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/questions?limit=1`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'apikey': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVudmV3ZWV6cmljdmhpaG91ZG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NDY0OTAsImV4cCI6MjA2MTMyMjQ5MH0.sqxKlYhJGPfx67v7Vflc2UijACuHvtz2u2KLL-IljMo",
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVudmV3ZWV6cmljdmhpaG91ZG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NDY0OTAsImV4cCI6MjA2MTMyMjQ5MH0.sqxKlYhJGPfx67v7Vflc2UijACuHvtz2u2KLL-IljMo`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('API Connection Test Result:', data);
-          setApiConnectionStatus('connected');
-          toast({
-            title: "API Connection Verified",
-            description: "Successfully connected to the Supabase questions API.",
-          });
-        } else {
-          console.error('API Connection Test Failed:', response.status);
-          setApiConnectionStatus('error');
-          toast({
-            title: "API Connection Failed",
-            description: "Could not connect to the API. Check console for details.",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('API Connection Error:', error);
-        setApiConnectionStatus('error');
-        toast({
-          title: "API Connection Error",
-          description: "Failed to connect to the API. Check network and try again.",
-          variant: "destructive"
-        });
-      }
-    };
-    
     checkApiConnection();
   }, [apiUrl]);
 
@@ -154,12 +166,12 @@ const Game: React.FC = () => {
       <ExitButton />
       
       {/* API Connection Status Indicator */}
-      <div className={`mb-4 text-center p-2 rounded-md ${
+      <div className={`mb-4 text-center p-3 rounded-md flex items-center justify-center gap-3 ${
         apiConnectionStatus === 'connected' ? 'bg-green-100 text-green-700' : 
         apiConnectionStatus === 'error' ? 'bg-red-100 text-red-700' :
         'bg-yellow-100 text-yellow-700'
       }`}>
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center gap-2">
           <span className={`inline-block h-3 w-3 rounded-full ${
             apiConnectionStatus === 'connected' ? 'bg-green-500' :
             apiConnectionStatus === 'error' ? 'bg-red-500' :
@@ -171,6 +183,17 @@ const Game: React.FC = () => {
              'Checking API Connection...'}
           </span>
         </div>
+        
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="p-1 h-auto" 
+          onClick={checkApiConnection}
+          disabled={isCheckingApi}
+        >
+          <RefreshCw className={`h-4 w-4 ${isCheckingApi ? 'animate-spin' : ''}`} />
+          <span className="sr-only">Refresh API connection</span>
+        </Button>
       </div>
       
       {gameStatus === 'setup' && (

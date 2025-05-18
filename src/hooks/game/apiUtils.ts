@@ -40,14 +40,21 @@ export async function fetchFromApi<T>(
     const apiUrl = (window as any).API_BASE_URL || API_BASE_URL;
     
     console.log(`Fetching from API: ${apiUrl}${endpoint}`);
+    console.log('Using API key:', SUPABASE_API_KEY ? 'API key is present' : 'API key is missing');
+    
+    // Ensure headers are properly initialized
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'apikey': SUPABASE_API_KEY,
+      'Authorization': `Bearer ${SUPABASE_API_KEY}`
+    };
+    
+    // Log headers for debugging
+    console.log('Request headers:', JSON.stringify(headers, null, 2));
     
     const response = await fetch(`${apiUrl}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'apikey': SUPABASE_API_KEY,
-        'Authorization': `Bearer ${SUPABASE_API_KEY}`
-      },
+      headers,
       ...options,
     });
 
@@ -173,23 +180,35 @@ export function configureApiUrl(newUrl: string) {
   // Store the API URL in window object for persistence during the session
   (window as any).API_BASE_URL = newUrl;
   console.log(`API URL configured to: ${newUrl}`);
+  
+  // Also update the API key if it was lost somehow
+  if (!(window as any).SUPABASE_API_KEY) {
+    (window as any).SUPABASE_API_KEY = SUPABASE_API_KEY;
+    console.log('API key restored.');
+  }
+  
   toast.success('API connection configured successfully!');
   
   // Store in localStorage for persistence between sessions
   try {
     localStorage.setItem('API_BASE_URL', newUrl);
+    localStorage.setItem('SUPABASE_API_KEY', SUPABASE_API_KEY);
   } catch (e) {
-    console.warn('Could not save API URL to localStorage:', e);
+    console.warn('Could not save API settings to localStorage:', e);
   }
 }
 
-// Initialize API URL from localStorage if available
+// Initialize API settings from localStorage if available
 try {
   const savedApiUrl = localStorage.getItem('API_BASE_URL');
   if (savedApiUrl) {
     (window as any).API_BASE_URL = savedApiUrl;
     console.log(`Initialized API URL from localStorage: ${savedApiUrl}`);
   }
+  
+  // Also initialize the API key from localStorage or use the default
+  (window as any).SUPABASE_API_KEY = localStorage.getItem('SUPABASE_API_KEY') || SUPABASE_API_KEY;
+  console.log('API key initialized:', (window as any).SUPABASE_API_KEY ? 'Present' : 'Missing');
 } catch (e) {
-  console.warn('Could not read API URL from localStorage:', e);
+  console.warn('Could not read API settings from localStorage:', e);
 }
