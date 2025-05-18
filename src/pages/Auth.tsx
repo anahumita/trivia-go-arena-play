@@ -12,20 +12,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, loading } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Redirect if user is already logged in
+  // Only redirect if user is logged in AND not in loading state
   useEffect(() => {
-    if (user) {
-      console.log("User is logged in, redirecting to dashboard");
+    console.log("Auth page - User state:", user ? "Logged in" : "Not logged in", "Loading:", loading);
+    if (user && !loading) {
+      console.log("Redirecting authenticated user to dashboard");
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,23 +35,23 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     
     if (!username.trim()) {
       toast.error("Please enter a username");
-      setLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
     if (!validateEmail(email)) {
       toast.error("Please enter a valid email address");
-      setLoading(false);
+      setIsSubmitting(false);
       return;
     }
     
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long");
-      setLoading(false);
+      setIsSubmitting(false);
       return;
     }
     
@@ -69,17 +70,17 @@ const Auth = () => {
       console.error("Exception during signup:", error);
       toast.error(error.message || "An error occurred during registration");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     
     if (!validateEmail(email)) {
       toast.error("Please enter a valid email address");
-      setLoading(false);
+      setIsSubmitting(false);
       return;
     }
     
@@ -104,7 +105,7 @@ const Auth = () => {
       console.error("Exception during login:", error);
       toast.error(error.message || "An error occurred during login");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -112,7 +113,16 @@ const Auth = () => {
     setShowConfirmDialog(false);
   };
 
-  // If already redirecting due to being logged in
+  // Show loading indicator instead of rendering whole page during initial auth check
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If already logged in, don't render the auth form at all
   if (user) {
     return null;
   }
@@ -160,8 +170,8 @@ const Auth = () => {
                     autoComplete="current-password"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </TabsContent>
@@ -203,8 +213,8 @@ const Auth = () => {
                     autoComplete="new-password"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating account..." : "Create Account"}
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
             </TabsContent>
