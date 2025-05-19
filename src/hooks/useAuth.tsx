@@ -8,29 +8,53 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     console.log("useAuth hook - Setting up auth state listener");
+    let mounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log("Auth state change event:", event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        setLoading(false);
+        if (mounted) {
+          console.log("Auth state change event:", event);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          
+          // Only set loading to false after initial loading
+          if (initialized) {
+            setLoading(false);
+          }
+        }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log("Initial session check:", currentSession ? "Session found" : "No session");
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-    });
+    const checkSession = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (mounted) {
+          console.log("Initial session check:", currentSession ? "Session found" : "No session");
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          setLoading(false);
+          setInitialized(true);
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
+      }
+    };
+
+    checkSession();
 
     return () => {
       console.log("useAuth hook - Unsubscribing from auth state changes");
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

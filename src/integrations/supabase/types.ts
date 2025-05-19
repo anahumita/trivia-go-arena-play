@@ -46,28 +46,28 @@ export type Database = {
       }
       leaderboard: {
         Row: {
-          games_won: number | null
-          id: string
-          rank: number | null
-          score: number | null
-          strongest_category: string | null
-          user_id: string | null
+          games_won: number
+          id: number
+          rank: number
+          score: number
+          strongest_category: string
+          user_id: string
         }
         Insert: {
-          games_won?: number | null
-          id?: string
-          rank?: number | null
-          score?: number | null
-          strongest_category?: string | null
-          user_id?: string | null
+          games_won?: number
+          id?: number
+          rank?: number
+          score?: number
+          strongest_category: string
+          user_id: string
         }
         Update: {
-          games_won?: number | null
-          id?: string
-          rank?: number | null
-          score?: number | null
-          strongest_category?: string | null
-          user_id?: string | null
+          games_won?: number
+          id?: number
+          rank?: number
+          score?: number
+          strongest_category?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -156,6 +156,47 @@ export type Database = {
           question?: string
         }
         Relationships: []
+      }
+      trivia: {
+        Row: {
+          created_at: string
+          games_won: number
+          id: string
+          rank: number
+          score: number
+          strongest_category: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          games_won?: number
+          id?: string
+          rank?: number
+          score?: number
+          strongest_category: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          games_won?: number
+          id?: string
+          rank?: number
+          score?: number
+          strongest_category?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trivia_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {

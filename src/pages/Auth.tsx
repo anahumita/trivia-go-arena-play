@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,19 +12,25 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signUp, user, loading } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Only redirect if user is logged in AND not in loading state
+  // Only redirect if user is logged in AND not in loading state AND auth check has completed
   useEffect(() => {
     console.log("Auth page - User state:", user ? "Logged in" : "Not logged in", "Loading:", loading);
-    if (user && !loading) {
-      console.log("Redirecting authenticated user to dashboard");
-      navigate('/dashboard');
+    
+    if (!loading) {
+      setAuthChecked(true);
+      if (user) {
+        console.log("Redirecting authenticated user to dashboard");
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [user, loading, navigate]);
 
@@ -99,7 +105,7 @@ const Auth = () => {
         }
       } else {
         toast.success("Successfully logged in!");
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error: any) {
       console.error("Exception during login:", error);
@@ -113,20 +119,25 @@ const Auth = () => {
     setShowConfirmDialog(false);
   };
 
-  // Show loading indicator instead of rendering whole page during initial auth check
+  // If still loading, show a loading indicator that's not part of the normal auth flow
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-b from-game-background to-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Checking authentication status...</p>
+        </div>
       </div>
     );
   }
 
-  // If already logged in, don't render the auth form at all
-  if (user) {
+  // Only show the redirect on initial load, not on subsequent auth checks
+  // if user exists and authChecked is true, don't render the auth form
+  if (user && authChecked) {
     return null;
   }
 
+  // Only render the login form if we've confirmed the user is not logged in
   return (
     <div className="min-h-screen bg-gradient-to-b from-game-background to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
