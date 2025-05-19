@@ -76,14 +76,13 @@ const GameOver: React.FC<GameOverProps> = ({ players, onRestart }) => {
           console.log('Creating new leaderboard entry for user:', user.id);
           const { error: insertError } = await supabase
             .from('leaderboard')
-            .insert([
-              {
-                user_id: user.id,
-                score: winner.score,
-                games_won: winner.name === user.user_metadata.username ? 1 : 0,
-                rank: newRank
-              }
-            ]);
+            .insert({
+              user_id: user.id,
+              score: winner.score,
+              games_won: winner.name === user.user_metadata.username ? 1 : 0,
+              rank: newRank,
+              strongest_category: "General Knowledge" // Default value to satisfy the type requirement
+            });
             
           if (insertError) {
             console.error('Error creating leaderboard entry:', insertError);

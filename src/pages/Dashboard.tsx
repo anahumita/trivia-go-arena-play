@@ -27,13 +27,14 @@ import { Label } from '@/components/ui/label';
 import { configureApiUrl } from '@/hooks/game/apiUtils';
 
 interface LeaderboardEntry {
-  id: string;
+  id: string | number; // Changed to accept both string and number
   user_id: string;
   score: number;
   games_won: number;
   rank: number;
   strongest_category: string | null;
   username?: string;
+  users?: { username: string };
 }
 
 const Dashboard = () => {
@@ -67,14 +68,16 @@ const Dashboard = () => {
           return;
         }
         
-        // Format the data to include username
+        // Format the data to include username and handle any type inconsistencies
         const formattedData = data.map(entry => ({
           ...entry,
-          username: entry.users?.username || 'Unknown Player'
+          id: entry.id, // Ensure id exists (will be either string or number)
+          username: entry.users?.username || 'Unknown Player',
+          strongest_category: entry.strongest_category || 'General Knowledge'
         }));
         
         console.log("Formatted leaderboard data:", formattedData);
-        setLeaderboard(formattedData);
+        setLeaderboard(formattedData as LeaderboardEntry[]);
       } catch (error) {
         console.error('Exception fetching leaderboard:', error);
         toast.error('An error occurred while loading the leaderboard');

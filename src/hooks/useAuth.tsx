@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -139,14 +138,13 @@ export function useAuth() {
       // Create new leaderboard entry
       const { data, error } = await supabase
         .from('leaderboard')
-        .insert([
-          { 
-            user_id: userId,
-            score: 0,
-            games_won: 0,
-            rank: 0
-          }
-        ]);
+        .insert({
+          user_id: userId,
+          score: 0,
+          games_won: 0,
+          rank: 0,
+          strongest_category: "General Knowledge" // Default value
+        });
       
       if (error) {
         console.error("Error creating leaderboard entry:", error);
