@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Trophy, RotateCcw, Home, Mail } from 'lucide-react';
+import { ArrowLeft, Trophy, RotateCcw, Home, Mail, LogOut } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import QuestionCard from '@/components/QuestionCard';
 import { Question } from '@/types/game';
 import { toast } from 'sonner';
@@ -121,6 +122,10 @@ const LevelGame: React.FC = () => {
         setAnswerSelected(false);
       }
     }, 2000);
+  };
+
+  const handleExitGame = () => {
+    completeLevel();
   };
 
   const completeLevel = () => {
@@ -250,9 +255,38 @@ const LevelGame: React.FC = () => {
             <Badge variant="secondary">{getDifficultyLabel(level)}</Badge>
           </div>
           
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Score</p>
-            <p className="text-xl font-bold text-primary">{score}</p>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Score</p>
+              <p className="text-xl font-bold text-primary">{score}</p>
+            </div>
+            
+            {/* Exit Game Button */}
+            {!gameCompleted && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <LogOut className="h-4 w-4 mr-1" />
+                    Exit
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Exit Game Early?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You can exit the game now and receive your current score. 
+                      Unanswered questions will count as zero points. You'll still be able to email your results.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Continue Playing</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleExitGame}>
+                      Exit & Get Score
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
 
