@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import Index from "./pages/Index";
 import Game from "./pages/Game";
+import GameModes from "./pages/GameModes";
+import LevelGame from "./pages/LevelGame";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
@@ -39,6 +41,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/game" element={<Game />} />
+          <Route path="/game-modes" element={<GameModes />} />
+          <Route path="/level-game/:levelId" element={<LevelGame />} />
           <Route path="/auth" element={<Auth />} />
           <Route
             path="/dashboard"

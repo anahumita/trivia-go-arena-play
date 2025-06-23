@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Award, Users, Brain, ArrowRight, LayoutDashboard } from 'lucide-react';
+import { Award, Users, Brain, ArrowRight, LayoutDashboard, Target } from 'lucide-react';
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -25,6 +26,12 @@ const Index = () => {
               <Link to="/game">
                 Start Playing
                 <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" className="h-auto py-8 px-6 text-lg" size="lg">
+              <Link to="/game-modes">
+                <Target className="mr-2 h-5 w-5" />
+                Moduri de Joc
               </Link>
             </Button>
             {user ? (
