@@ -7,7 +7,7 @@ import ExitButton from '@/components/ExitButton';
 const GameModes: React.FC = () => {
   const navigate = useNavigate();
   const [completedLevels] = useState<number[]>(() => {
-    // Încarcă nivelele completate din localStorage
+    // Load completed levels from localStorage
     const saved = localStorage.getItem('completedLevels');
     return saved ? JSON.parse(saved) : [];
   });

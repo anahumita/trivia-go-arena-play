@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,26 +12,26 @@ interface LevelSelectorProps {
 
 const LevelSelector: React.FC<LevelSelectorProps> = ({ onSelectLevel, completedLevels = [] }) => {
   const levels = [
-    { number: 1, title: "Nivel 1", difficulty: "Ușor", color: "bg-green-100 border-green-300", icon: "🌱" },
-    { number: 2, title: "Nivel 2", difficulty: "Mediu-Ușor", color: "bg-blue-100 border-blue-300", icon: "🌊" },
-    { number: 3, title: "Nivel 3", difficulty: "Mediu", color: "bg-yellow-100 border-yellow-300", icon: "⚡" },
-    { number: 4, title: "Nivel 4", difficulty: "Greu", color: "bg-orange-100 border-orange-300", icon: "🔥" },
-    { number: 5, title: "Nivel 5", difficulty: "Foarte Greu", color: "bg-red-100 border-red-300", icon: "💎" }
+    { number: 1, title: "Level 1", difficulty: "Easy", color: "bg-green-100 border-green-300", icon: "🌱" },
+    { number: 2, title: "Level 2", difficulty: "Medium-Easy", color: "bg-blue-100 border-blue-300", icon: "🌊" },
+    { number: 3, title: "Level 3", difficulty: "Medium", color: "bg-yellow-100 border-yellow-300", icon: "⚡" },
+    { number: 4, title: "Level 4", difficulty: "Hard", color: "bg-orange-100 border-orange-300", icon: "🔥" },
+    { number: 5, title: "Level 5", difficulty: "Very Hard", color: "bg-red-100 border-red-300", icon: "💎" }
   ];
 
   const isLevelUnlocked = (levelNumber: number) => {
-    // Primul nivel este mereu deblocat
+    // First level is always unlocked
     if (levelNumber === 1) return true;
-    // Celelalte nivele sunt deblocate dacă nivelul anterior a fost completat
+    // Other levels are unlocked if the previous level was completed
     return completedLevels.includes(levelNumber - 1);
   };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-primary mb-2">Moduri de Joc</h2>
+        <h2 className="text-3xl font-bold text-primary mb-2">Game Modes</h2>
         <p className="text-muted-foreground">
-          Alege un nivel și testează-ți cunoștințele cu 10 întrebări predefinite
+          Choose a level and test your knowledge with 10 predefined questions
         </p>
       </div>
       
@@ -64,7 +63,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ onSelectLevel, completedL
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-muted-foreground mb-4">
-                  10 întrebări {level.difficulty.toLowerCase()}
+                  10 {level.difficulty.toLowerCase()} questions
                 </p>
                 <Button 
                   onClick={() => onSelectLevel(level.number)}
@@ -72,7 +71,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ onSelectLevel, completedL
                   className="w-full"
                   variant={isCompleted ? "default" : "outline"}
                 >
-                  {isCompleted ? "Joacă din nou" : !isUnlocked ? "Blocat" : "Începe nivelul"}
+                  {isCompleted ? "Play again" : !isUnlocked ? "Locked" : "Start level"}
                 </Button>
                 {isCompleted && (
                   <div className="flex justify-center mt-2">
