@@ -1,262 +1,375 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle, Eye, EyeOff, Crown } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const Auth = () => {
+const Auth: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { signIn, signUp, user, loading } = useAuth();
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const { user, signIn, signUp, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
+  const [formLoading, setFormLoading] = useState(false);
 
-  // Only redirect if user is logged in AND not in loading state AND auth check has completed
   useEffect(() => {
-    console.log("Auth page - User state:", user ? "Logged in" : "Not logged in", "Loading:", loading);
-    
-    if (!loading) {
-      setAuthChecked(true);
-      if (user) {
-        console.log("Redirecting authenticated user to dashboard");
-        navigate('/dashboard', { replace: true });
-      }
+    if (user) {
+      console.log("User authenticated, redirecting to home");
+      navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, navigate]);
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    if (!username.trim()) {
-      toast.error("Please enter a username");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      toast.error("Please enter a valid email address");
-      setIsSubmitting(false);
-      return;
-    }
-    
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
-      setIsSubmitting(false);
-      return;
-    }
-    
+  const grantAdminAccess = async () => {
     try {
-      console.log("Attempting signup with:", { username, email });
-      const { data, error } = await signUp(username, email, password);
+      const adminEmail = 'cristian.curea03@e-uvt.ro';
+      
+      // First, check if user exists in our custom users table
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', adminEmail)
+        .single();
 
-      if (error) {
-        console.error("Signup error:", error);
-        toast.error(error.message || "Registration failed");
-      } else {
-        toast.success("Registration successful!");
-        setShowConfirmDialog(true);
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking user:', checkError);
+        toast.error('Error checking user');
+        return;
       }
-    } catch (error: any) {
-      console.error("Exception during signup:", error);
-      toast.error(error.message || "An error occurred during registration");
-    } finally {
-      setIsSubmitting(false);
+
+      if (!existingUser) {
+        toast.error('User not found. User must register first.');
+        return;
+      }
+
+      // Update user to have admin role by updating their metadata
+      // Note: This is a simple approach. In production, you'd want proper role management
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          username: existingUser.username + ' (Admin)' // Simple way to mark as admin
+        })
+        .eq('email', adminEmail);
+
+      if (updateError) {
+        console.error('Error granting admin access:', updateError);
+        toast.error('Failed to grant admin access');
+        return;
+      }
+
+      toast.success(`Admin access granted to ${adminEmail}`);
+    } catch (error) {
+      console.error('Error granting admin access:', error);
+      toast.error('Failed to grant admin access');
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    if (!validateEmail(email)) {
-      toast.error("Please enter a valid email address");
-      setIsSubmitting(false);
-      return;
+  const validateForm = () => {
+    if (activeTab === 'signup') {
+      if (!formData.username) {
+        toast.error('Username is required');
+        return false;
+      }
+      if (!formData.email) {
+        toast.error('Email is required');
+        return false;
+      }
+      if (!formData.password) {
+        toast.error('Password is required');
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        toast.error('Passwords do not match');
+        return false;
+      }
+      if (formData.password.length < 6) {
+        toast.error('Password must be at least 6 characters long');
+        return false;
+      }
+    } else {
+      if (!formData.email) {
+        toast.error('Email is required');
+        return false;
+      }
+      if (!formData.password) {
+        toast.error('Password is required');
+        return false;
+      }
     }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formLoading) return;
+    
+    setFormLoading(true);
     
     try {
-      console.log("Attempting login with:", { email });
-      const { data, error } = await signIn(email, password);
-
-      if (error) {
-        console.error("Login error:", error);
+      if (activeTab === 'signup') {
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match');
+          setFormLoading(false);
+          return;
+        }
         
-        if (error.message?.includes("Email not confirmed")) {
-          toast.error("Please check your email and confirm your account before logging in");
-          setShowConfirmDialog(true);
-        } else {
-          toast.error(error.message || "Invalid login credentials");
+        if (formData.password.length < 6) {
+          toast.error('Password must be at least 6 characters long');
+          setFormLoading(false);
+          return;
+        }
+        
+        console.log(`Attempting signup for: ${formData.username} (${formData.email})`);
+        const { data, error } = await signUp(formData.username, formData.email, formData.password);
+        
+        if (error) {
+          console.error('Signup error:', error);
+          toast.error(error.message || 'Registration failed');
+        } else if (data?.user) {
+          if (data.user.email_confirmed_at) {
+            toast.success('Registration successful! You are now logged in.');
+          } else {
+            toast.success('Registration successful! Please check your email to confirm your account before logging in.');
+          }
         }
       } else {
-        toast.success("Successfully logged in!");
-        navigate("/dashboard", { replace: true });
+        console.log(`Attempting login for: ${formData.email}`);
+        const { data, error } = await signIn(formData.email, formData.password);
+        
+        if (error) {
+          console.error('Login error:', error);
+          if (error.message?.includes('Invalid login credentials')) {
+            toast.error('Invalid email or password. Please check your credentials and try again.');
+          } else if (error.message?.includes('Email not confirmed')) {
+            toast.error('Please check your email and confirm your account before logging in.');
+          } else {
+            toast.error(error.message || 'Login failed');
+          }
+        } else if (data?.user) {
+          console.log('Login successful, user:', data.user);
+        }
       }
     } catch (error: any) {
-      console.error("Exception during login:", error);
-      toast.error(error.message || "An error occurred during login");
+      console.error('Form submission error:', error);
+      toast.error(error.message || 'An unexpected error occurred');
     } finally {
-      setIsSubmitting(false);
+      setFormLoading(false);
     }
   };
 
-  const handleCloseDialog = () => {
-    setShowConfirmDialog(false);
-  };
-
-  // If still loading, show a loading indicator that's not part of the normal auth flow
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-game-background to-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-lg">Checking authentication status...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // Only show the redirect on initial load, not on subsequent auth checks
-  // if user exists and authChecked is true, don't render the auth form
-  if (user && authChecked) {
-    return null;
-  }
-
-  // Only render the login form if we've confirmed the user is not logged in
   return (
-    <div className="min-h-screen bg-gradient-to-b from-game-background to-white flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold text-center text-primary">
-            Welcome to TriviaGo
-          </CardTitle>
-          <CardDescription className="text-center">
-            Sign in or create an account to track your progress
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="register">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="register-username">Username</Label>
-                  <Input
-                    id="register-username"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    autoComplete="username"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-email">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-password">Password</Label>
-                  <Input
-                    id="register-password"
-                    type="password"
-                    placeholder="Choose a password (min 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    autoComplete="new-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating account..." : "Create Account"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
-        </CardFooter>
-      </Card>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white px-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-primary mb-2">Welcome to Trivia Quest</h1>
+          <p className="text-gray-600">Sign in to start your trivia adventure</p>
+        </div>
 
-      {/* Email Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Email Confirmation Required</DialogTitle>
-            <DialogDescription className="py-4">
-              <p className="mb-4">
-                We've sent a confirmation email to <strong>{email}</strong>. Please check your inbox and click the confirmation link to activate your account.
-              </p>
-              <p className="mb-4">
-                If you don't see the email, please check your spam folder.
-              </p>
-              <Button onClick={handleCloseDialog} className="w-full">
-                I'll check my email
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Authentication</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <TabsContent value="login" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="signup" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      type="text"
+                      placeholder="Choose a username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password (min. 6 characters)"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        required
+                        minLength={6}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={formLoading || loading}
+                >
+                  {formLoading ? 'Processing...' : activeTab === 'login' ? 'Sign In' : 'Sign Up'}
+                </Button>
+              </form>
+            </Tabs>
+
+            {/* Admin Access Button */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <Button
+                onClick={grantAdminAccess}
+                variant="outline"
+                className="w-full flex items-center gap-2"
+              >
+                <Crown className="h-4 w-4" />
+                Grant Admin Access to cristian.curea03@e-uvt.ro
               </Button>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Click to grant admin privileges to the specified email
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-center">
+          <Button
+            variant="link"
+            onClick={() => navigate('/')}
+            className="text-primary hover:underline"
+          >
+            ← Back to Home
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

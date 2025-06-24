@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,8 +15,10 @@ const Admin: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('questions');
 
-  // Simple admin check - in production, you'd want proper role-based auth
-  const isAdmin = user?.email?.includes('admin') || user?.user_metadata?.role === 'admin';
+  // Enhanced admin check - includes the specific email
+  const isAdmin = user?.email === 'cristian.curea03@e-uvt.ro' || 
+                  user?.email?.includes('admin') || 
+                  user?.user_metadata?.role === 'admin';
 
   if (!user) {
     return (
