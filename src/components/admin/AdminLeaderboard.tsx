@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface LeaderboardEntry {
-  id: string;
+  id: number; // Changed from string to number to match Supabase
   user_id: string;
   score: number;
   games_won: number;
@@ -71,7 +70,7 @@ const AdminLeaderboard: React.FC = () => {
           games_won: 0, 
           rank: 0 
         })
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all rows
+        .neq('id', 0); // Changed to use number comparison
 
       if (error) {
         console.error('Error resetting leaderboard:', error);
