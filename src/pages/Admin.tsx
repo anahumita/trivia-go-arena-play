@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Users, HelpCircle, Trophy, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import AdminQuestions from '@/components/admin/AdminQuestions';
 import AdminUsers from '@/components/admin/AdminUsers';
 import AdminLeaderboard from '@/components/admin/AdminLeaderboard';
@@ -14,11 +16,47 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('questions');
+  const [userCount, setUserCount] = useState(0);
+  const [questionCount, setQuestionCount] = useState(0);
 
   // Enhanced admin check - includes the specific email
   const isAdmin = user?.email === 'cristian.curea03@e-uvt.ro' || 
                   user?.email?.includes('admin') || 
                   user?.user_metadata?.role === 'admin';
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadStats();
+    }
+  }, [isAdmin]);
+
+  const loadStats = async () => {
+    try {
+      // Get user count
+      const { count: userCount, error: userError } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      if (userError) {
+        console.error('Error loading user count:', userError);
+      } else {
+        setUserCount(userCount || 0);
+      }
+
+      // Get question count
+      const { count: questionCount, error: questionError } = await supabase
+        .from('questions')
+        .select('*', { count: 'exact', head: true });
+
+      if (questionError) {
+        console.error('Error loading question count:', questionError);
+      } else {
+        setQuestionCount(questionCount || 0);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
 
   if (!user) {
     return (
@@ -72,8 +110,8 @@ const Admin: React.FC = () => {
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">150</div>
-              <p className="text-xs text-muted-foreground">+12 from last month</p>
+              <div className="text-2xl font-bold">{questionCount}</div>
+              <p className="text-xs text-muted-foreground">Questions in database</p>
             </CardContent>
           </Card>
           
@@ -83,8 +121,8 @@ const Admin: React.FC = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2,350</div>
-              <p className="text-xs text-muted-foreground">+180 from last month</p>
+              <div className="text-2xl font-bold">{userCount}</div>
+              <p className="text-xs text-muted-foreground">Registered users</p>
             </CardContent>
           </Card>
           
@@ -121,7 +159,7 @@ const Admin: React.FC = () => {
           </TabsList>
           
           <TabsContent value="questions">
-            <AdminQuestions />
+            <AdminQuestions onQuestionAdded={loadStats} />
           </TabsContent>
           
           <TabsContent value="users">

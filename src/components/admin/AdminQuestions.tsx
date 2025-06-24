@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Question } from '@/types/game';
 
 interface DatabaseQuestion {
   id: string;
@@ -23,7 +22,11 @@ interface DatabaseQuestion {
   explanation?: string;
 }
 
-const AdminQuestions: React.FC = () => {
+interface AdminQuestionsProps {
+  onQuestionAdded?: () => void;
+}
+
+const AdminQuestions: React.FC<AdminQuestionsProps> = ({ onQuestionAdded }) => {
   const [questions, setQuestions] = useState<DatabaseQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,6 +86,11 @@ const AdminQuestions: React.FC = () => {
       return;
     }
 
+    if (!formData.category) {
+      toast.error('Please select a category');
+      return;
+    }
+
     try {
       if (editingQuestion) {
         // Update existing question
@@ -94,7 +102,7 @@ const AdminQuestions: React.FC = () => {
             question: formData.question,
             options: formData.options,
             correct_answer: formData.correct_answer,
-            explanation: formData.explanation
+            explanation: formData.explanation || null
           })
           .eq('id', editingQuestion.id);
 
@@ -115,7 +123,7 @@ const AdminQuestions: React.FC = () => {
             question: formData.question,
             options: formData.options,
             correct_answer: formData.correct_answer,
-            explanation: formData.explanation
+            explanation: formData.explanation || null
           }]);
 
         if (error) {
@@ -125,6 +133,7 @@ const AdminQuestions: React.FC = () => {
         }
 
         toast.success('Question added successfully');
+        onQuestionAdded?.();
       }
 
       // Reset form and reload questions
@@ -155,6 +164,7 @@ const AdminQuestions: React.FC = () => {
 
       toast.success('Question deleted successfully');
       loadQuestions();
+      onQuestionAdded?.();
     } catch (error) {
       console.error('Error deleting question:', error);
       toast.error('Failed to delete question');
@@ -167,7 +177,7 @@ const AdminQuestions: React.FC = () => {
       category: question.category,
       difficulty: question.difficulty,
       question: question.question,
-      options: question.options,
+      options: [...question.options],
       correct_answer: question.correct_answer,
       explanation: question.explanation || ''
     });
@@ -229,7 +239,7 @@ const AdminQuestions: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Category</label>
+                    <label className="text-sm font-medium">Category *</label>
                     <Select value={formData.category} onValueChange={(value) => 
                       setFormData(prev => ({ ...prev, category: value }))
                     }>
@@ -244,7 +254,7 @@ const AdminQuestions: React.FC = () => {
                     </Select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Difficulty</label>
+                    <label className="text-sm font-medium">Difficulty *</label>
                     <Select value={formData.difficulty} onValueChange={(value) => 
                       setFormData(prev => ({ ...prev, difficulty: value }))
                     }>
@@ -263,17 +273,18 @@ const AdminQuestions: React.FC = () => {
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium">Question</label>
+                  <label className="text-sm font-medium">Question *</label>
                   <Textarea
                     value={formData.question}
                     onChange={(e) => setFormData(prev => ({ ...prev, question: e.target.value }))}
                     placeholder="Enter the question..."
                     rows={3}
+                    required
                   />
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium">Options</label>
+                  <label className="text-sm font-medium">Options *</label>
                   {formData.options.map((option, index) => (
                     <Input
                       key={index}
@@ -285,12 +296,13 @@ const AdminQuestions: React.FC = () => {
                       }}
                       placeholder={`Option ${index + 1}`}
                       className="mt-2"
+                      required
                     />
                   ))}
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium">Correct Answer</label>
+                  <label className="text-sm font-medium">Correct Answer *</label>
                   <Select value={formData.correct_answer} onValueChange={(value) => 
                     setFormData(prev => ({ ...prev, correct_answer: value }))
                   }>
